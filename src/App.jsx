@@ -657,7 +657,7 @@ export default function App() {
   }), [groupedDestinations, groupedByProvincia]);
 
   return (
-    <div className="min-h-screen bg-stone-50 font-sans">
+    <div className="min-h-screen bg-stone-100 sm:bg-stone-50 font-sans">
       <div className="h-1.5 bg-gradient-to-r from-orange-500 via-red-500 via-green-500 via-cyan-500 via-blue-500 to-fuchsia-500" />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-12">
@@ -723,7 +723,7 @@ export default function App() {
                 {sortedByPrice.length} tarjetas
               </span>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-6">
               {sortedByPrice.map(g => (
                 <DestinationCard
                   key={`${g.empresa}-${g.destino}-${g.transporte}`}
@@ -747,7 +747,7 @@ export default function App() {
                     {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                   </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-6">
                   {items.map(g => (
                     <DestinationCard
                       key={`${g.empresa}-${g.destino}-${g.transporte}`}
@@ -775,7 +775,7 @@ export default function App() {
                       {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-6">
                     {items.map(g => (
                       <DestinationCard
                         key={`${g.empresa}-${g.destino}-${g.transporte}`}
