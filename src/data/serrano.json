@@ -1,0 +1,31 @@
+[
+  {
+    "Empresa": "Serrano",
+    "Destino": "San Pedro",
+    "Transporte": "Micro",
+    "Dias": 2,
+    "Noches": 1,
+    "Plan_Pago": "Cuotas (cuponera / transferencia / mercado pago)",
+    "Cantidad_Cuotas": null,
+    "Total_Final": 450000,
+    "Liberados": "No informado",
+    "Seguro": "A consultar",
+    "Descuentos": "A consultar",
+    "Actividades": "El Fuerte de Obligado, Beach Day con canotaje, Complejo Las Amalias, Sunset Catamaran, City Tour, Fiesta de disfraces en Macoco, Juegos nocturnos, Cena de velas, Fogon",
+    "Vigencia": "Reunión el 8 de mayo de 2026. Empresa conocida"
+  },
+  {
+    "Empresa": "Serrano",
+    "Destino": "Córdoba",
+    "Transporte": "Bus",
+    "Dias": null,
+    "Noches": null,
+    "Plan_Pago": "Plan variable (a coordinar)",
+    "Cantidad_Cuotas": null,
+    "Liberados": "A consultar",
+    "Seguro": "A consultar",
+    "Descuentos": "A consultar",
+    "Actividades": "Consultar",
+    "Vigencia": "Reunión el 8 de mayo de 2026"
+  }
+]

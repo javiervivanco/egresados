@@ -1,0 +1,34 @@
+[
+  {
+    "Empresa": "Puerto Aventura",
+    "Destino": "Chascomús",
+    "Transporte": "Bus",
+    "Dias": 3,
+    "Noches": 2,
+    "Plan_Pago": "Plan en 3 cuotas",
+    "Cantidad_Cuotas": 3,
+    "Cuota_Mensual": 190000,
+    "Total_Final": 570000,
+    "Liberados": "A consultar",
+    "Seguro": "A consultar",
+    "Descuentos": "A consultar",
+    "Actividades": "Tirolesa, Metegol Humano, Arco y Flecha, Desafío Ninja, Palestra/Muro Escalar, Circuito Aéreo, Fiesta Espuma, Piletas, Toboganes, Tirolesa en agua, Stand-up, Kayak, Fogón, Fiesta Matiné Robot Led, Noche en Dormis",
+    "Vigencia": "Promoción válida hasta el 30 de abril de 2026"
+  },
+  {
+    "Empresa": "Puerto Aventura",
+    "Destino": "Chascomús",
+    "Transporte": "Bus",
+    "Dias": 3,
+    "Noches": 2,
+    "Plan_Pago": "Plan en 8 cuotas",
+    "Cantidad_Cuotas": 8,
+    "Cuota_Mensual": 85000,
+    "Total_Final": 680000,
+    "Liberados": "A consultar",
+    "Seguro": "A consultar",
+    "Descuentos": "A consultar",
+    "Actividades": "Actividades Aventura, Acuáticas, Lacustres, Fiestas",
+    "Vigencia": "Promoción válida hasta el 30 de abril de 2026"
+  }
+]

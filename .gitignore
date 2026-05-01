@@ -1,0 +1,7 @@
+node_modules
+dist
+.DS_Store
+*.log
+.vite
+# viajes.json es artifact intermedio de 'make extract'/'make split'
+src/data/viajes.json
