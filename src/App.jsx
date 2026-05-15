@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Bus, Plane, MapPin, Bed, Lightbulb, Users, Shield, Tag, Sparkles, Calculator, BookOpen, Wallet, CalendarClock, Info, CheckCircle2, Building2, Search, LayoutGrid, Wand2 } from "lucide-react";
+import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Bus, Plane, MapPin, Bed, Lightbulb, Users, Shield, Tag, Sparkles, Calculator, BookOpen, Wallet, CalendarClock, Info, CheckCircle2, Building2, Search, LayoutGrid, Wand2, MessageCircleWarning, Vote, BarChart3, Send } from "lucide-react";
+import { supabase } from "./supabase";
 
 // Carga todos los JSON por empresa en src/data/. Cada archivo debe ser un array de filas.
 // Para agregar una empresa nueva: tirar un <slug>.json al directorio y reiniciar dev.
@@ -54,9 +55,11 @@ const guessProvincia = (destino) => {
   return "Otros";
 };
 
-// Orden geográfico de norte a sur dentro del país, para que el listado se sienta natural.
-// Las provincias no listadas caen al final por orden alfabético.
-const PROVINCIA_ORDER = ["Buenos Aires", "Entre Ríos", "Córdoba"];
+// Orden de provincias en el listado. Córdoba primero por ser el destino más popular.
+const PROVINCIA_ORDER = ["Córdoba", "Buenos Aires", "Entre Ríos"];
+
+// Destinos destacados: aparecen primero dentro de su provincia.
+const DESTINO_FEATURED = new Set(["Carlos Paz / Córdoba"]);
 
 function getPaymentTip(plan) {
   const c = plan.Cantidad_Cuotas;
@@ -615,7 +618,14 @@ function WizardView({ groupedDestinations }) {
       if (ib !== -1) return 1;
       return a.localeCompare(b);
     });
-    return provs.map(p => ({ provincia: p, destinos: Array.from(buckets[p]).sort() }));
+    return provs.map(p => ({
+      provincia: p,
+      destinos: Array.from(buckets[p]).sort((a, b) => {
+        const af = DESTINO_FEATURED.has(a) ? 0 : 1;
+        const bf = DESTINO_FEATURED.has(b) ? 0 : 1;
+        return af - bf || a.localeCompare(b);
+      }),
+    }));
   }, [groupedDestinations, duracion]);
 
   // Step 2: filtered cards sorted by cheapest cuota mensual
@@ -827,12 +837,14 @@ function WizardView({ groupedDestinations }) {
             <p className="text-stone-500 text-sm mb-4">{resultCards.length} {resultCards.length === 1 ? "opción encontrada" : "opciones encontradas"}, ordenadas por cuota más baja</p>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-6">
               {resultCards.map(g => (
-                <DestinationCard
-                  key={`${g.empresa}-${g.destino}-${g.transporte}`}
-                  empresa={g.empresa}
-                  destino={g.destino}
-                  planes={g.planes}
-                />
+                <div key={`${g.empresa}-${g.destino}-${g.transporte}`} className="flex flex-col gap-2">
+                  <DestinationCard
+                    empresa={g.empresa}
+                    destino={g.destino}
+                    planes={g.planes}
+                  />
+                  <QuickVote destino={g.destino} empresa={g.empresa} />
+                </div>
               ))}
             </div>
             {resultCards.length === 0 && (
@@ -843,6 +855,318 @@ function WizardView({ groupedDestinations }) {
             )}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// === QUICK VOTE (botón inline en resultados del wizard) ===
+function QuickVote({ destino, empresa }) {
+  const [open, setOpen] = useState(false);
+  const [nombre, setNombre] = useState("");
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleVote = async () => {
+    if (!nombre.trim()) return;
+    if (!supabase) { setError("Votación no disponible (configuración pendiente)"); return; }
+    setSending(true);
+    setError(null);
+    const { error: err } = await supabase.from("votos").insert({
+      nombre: nombre.trim(),
+      destino,
+      empresa,
+    });
+    setSending(false);
+    if (err) { setError("Error al votar: " + err.message); return; }
+    setDone(true);
+  };
+
+  if (done) {
+    return (
+      <div className="flex items-center justify-center gap-2 px-4 py-3.5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl text-emerald-800 font-semibold animate-[fadeIn_0.2s_ease-out]">
+        <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+        <span>¡Voto registrado!</span>
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white font-bold rounded-2xl transition-all shadow-md hover:shadow-lg text-[15px]"
+      >
+        <Vote className="w-5 h-5" />
+        ¡Quiero este viaje!
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-violet-50 border-2 border-violet-200 rounded-2xl p-3.5 space-y-2.5 animate-[fadeIn_0.15s_ease-out]">
+      <p className="text-[13px] text-violet-800 font-semibold">Ingresá tu nombre para votar</p>
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={nombre}
+          onChange={(e) => setNombre(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleVote()}
+          placeholder="Ej: Familia García"
+          autoFocus
+          className="flex-1 min-w-0 bg-white border-2 border-violet-200 rounded-xl px-3.5 py-2.5 text-[15px] text-stone-900 focus:outline-none focus:border-violet-400 transition-colors"
+        />
+        <button
+          onClick={handleVote}
+          disabled={sending || !nombre.trim()}
+          className="px-4 py-2.5 bg-violet-600 hover:bg-violet-700 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors shrink-0 flex items-center gap-1.5 text-[15px]"
+        >
+          <Send className="w-4 h-4" />
+          {sending ? "..." : "Votar"}
+        </button>
+      </div>
+      {error && <p className="text-red-600 text-[13px] font-medium">{error}</p>}
+      <button onClick={() => setOpen(false)} className="text-violet-400 hover:text-violet-600 text-[12px]">
+        Cancelar
+      </button>
+    </div>
+  );
+}
+
+// === VOTACIÓN ===
+function VotingPanel({ groupedDestinations }) {
+  const [nombre, setNombre] = useState("");
+  const [selectedDestino, setSelectedDestino] = useState("");
+  const [selectedEmpresa, setSelectedEmpresa] = useState("");
+  const [comentario, setComentario] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+  const [error, setError] = useState(null);
+  const [votos, setVotos] = useState([]);
+  const [loadingVotos, setLoadingVotos] = useState(true);
+
+  // Destinos y empresas únicos
+  const destinos = useMemo(() => {
+    const set = new Set(groupedDestinations.map(g => g.destino));
+    return Array.from(set).sort();
+  }, [groupedDestinations]);
+
+  const empresasForDestino = useMemo(() => {
+    if (!selectedDestino) return [];
+    const set = new Set(groupedDestinations.filter(g => g.destino === selectedDestino).map(g => g.empresa));
+    return Array.from(set).sort();
+  }, [groupedDestinations, selectedDestino]);
+
+  // Cargar votos existentes
+  const fetchVotos = useCallback(async () => {
+    if (!supabase) { setLoadingVotos(false); return; }
+    const { data } = await supabase.from("votos").select("*").order("created_at", { ascending: false });
+    if (data) setVotos(data);
+    setLoadingVotos(false);
+  }, []);
+
+  useEffect(() => { fetchVotos(); }, [fetchVotos]);
+
+  // Resultados agrupados
+  const resultados = useMemo(() => {
+    const counts = {};
+    votos.forEach(v => {
+      const key = v.destino || "Sin destino";
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [votos]);
+
+  const totalVotos = votos.length;
+  const maxVotos = resultados.length ? resultados[0][1] : 0;
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!nombre.trim() || !selectedDestino) return;
+    if (!supabase) { setError("Votación no disponible (configuración pendiente)"); return; }
+    setSending(true);
+    setError(null);
+
+    const { error: err } = await supabase.from("votos").insert({
+      nombre: nombre.trim(),
+      destino: selectedDestino,
+      empresa: selectedEmpresa || null,
+      comentario: comentario.trim() || null,
+    });
+
+    if (err) {
+      setError("No se pudo enviar el voto. Intentá de nuevo.");
+      setSending(false);
+    } else {
+      setSent(true);
+      setSending(false);
+      fetchVotos();
+    }
+  };
+
+  return (
+    <div className="animate-[fadeIn_0.3s_ease-out]">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+
+        {/* FORMULARIO */}
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 rounded-full bg-violet-100 flex items-center justify-center">
+              <Vote className="w-5 h-5 text-violet-700" />
+            </div>
+            <div>
+              <h3 className="font-serif text-xl text-stone-900">Votá tu destino</h3>
+              <p className="text-[12px] text-stone-500">Elegí a dónde querés ir</p>
+            </div>
+          </div>
+
+          {sent ? (
+            <div className="text-center py-8 animate-[fadeIn_0.3s_ease-out]">
+              <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
+              <p className="font-semibold text-stone-900 text-lg mb-1">¡Voto registrado!</p>
+              <p className="text-stone-500 text-sm mb-4">Gracias por participar, {nombre}.</p>
+              <button
+                onClick={() => { setSent(false); setNombre(""); setSelectedDestino(""); setSelectedEmpresa(""); setComentario(""); }}
+                className="text-sm text-violet-700 font-semibold underline"
+              >
+                Votar de nuevo
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="text-xs font-bold text-stone-700 mb-1.5 block">Tu nombre o familia</label>
+                <input
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: Familia García"
+                  required
+                  className="w-full bg-white border-2 border-stone-200 rounded-xl px-4 py-2.5 text-[15px] text-stone-900 focus:outline-none focus:border-violet-400 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-stone-700 mb-1.5 block">¿A dónde querés ir?</label>
+                <div className="relative">
+                  <select
+                    value={selectedDestino}
+                    onChange={(e) => { setSelectedDestino(e.target.value); setSelectedEmpresa(""); }}
+                    required
+                    className="w-full appearance-none bg-white border-2 border-stone-200 rounded-xl pl-4 pr-10 py-2.5 text-[15px] text-stone-900 focus:outline-none focus:border-violet-400 transition-colors cursor-pointer"
+                  >
+                    <option value="">Elegí un destino</option>
+                    {destinos.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <ChevronDown className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                </div>
+              </div>
+
+              {empresasForDestino.length > 0 && (
+                <div>
+                  <label className="text-xs font-bold text-stone-700 mb-1.5 block">¿Preferís alguna empresa? <span className="font-normal text-stone-400">(opcional)</span></label>
+                  <div className="relative">
+                    <select
+                      value={selectedEmpresa}
+                      onChange={(e) => setSelectedEmpresa(e.target.value)}
+                      className="w-full appearance-none bg-white border-2 border-stone-200 rounded-xl pl-4 pr-10 py-2.5 text-[15px] text-stone-900 focus:outline-none focus:border-violet-400 transition-colors cursor-pointer"
+                    >
+                      <option value="">Sin preferencia</option>
+                      {empresasForDestino.map(e => <option key={e} value={e}>{e}</option>)}
+                    </select>
+                    <ChevronDown className="w-4 h-4 text-stone-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-bold text-stone-700 mb-1.5 block">Comentario <span className="font-normal text-stone-400">(opcional)</span></label>
+                <textarea
+                  value={comentario}
+                  onChange={(e) => setComentario(e.target.value)}
+                  placeholder="Algo que quieras agregar..."
+                  rows={2}
+                  className="w-full bg-white border-2 border-stone-200 rounded-xl px-4 py-2.5 text-[14px] text-stone-900 focus:outline-none focus:border-violet-400 transition-colors resize-none"
+                />
+              </div>
+
+              {error && <p className="text-red-600 text-sm">{error}</p>}
+
+              <button
+                type="submit"
+                disabled={sending || !nombre.trim() || !selectedDestino}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-violet-600 hover:bg-violet-700 disabled:bg-stone-300 text-white font-semibold rounded-xl transition-colors"
+              >
+                <Send className="w-4 h-4" />
+                {sending ? "Enviando..." : "Enviar voto"}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* RESULTADOS */}
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-9 h-9 rounded-full bg-emerald-100 flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-emerald-700" />
+            </div>
+            <div>
+              <h3 className="font-serif text-xl text-stone-900">Resultados</h3>
+              <p className="text-[12px] text-stone-500">{totalVotos} {totalVotos === 1 ? "voto" : "votos"} hasta ahora</p>
+            </div>
+          </div>
+
+          {loadingVotos ? (
+            <p className="text-stone-400 text-sm py-8 text-center">Cargando votos...</p>
+          ) : resultados.length === 0 ? (
+            <div className="text-center py-8">
+              <Vote className="w-10 h-10 text-stone-300 mx-auto mb-2" />
+              <p className="text-stone-400 text-sm">Todavía no hay votos. ¡Sé el primero!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {resultados.map(([destino, count], i) => {
+                const pct = totalVotos > 0 ? Math.round((count / totalVotos) * 100) : 0;
+                const barWidth = maxVotos > 0 ? (count / maxVotos) * 100 : 0;
+                return (
+                  <div key={destino}>
+                    <div className="flex items-baseline justify-between mb-1">
+                      <span className="text-sm font-semibold text-stone-800 flex items-center gap-1.5">
+                        {i === 0 && resultados.length > 1 && <span className="text-amber-500">🏆</span>}
+                        {destino}
+                      </span>
+                      <span className="text-[12px] text-stone-500 font-semibold">{count} {count === 1 ? "voto" : "votos"} · {pct}%</span>
+                    </div>
+                    <div className="w-full h-3 bg-stone-100 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-700 ease-out ${i === 0 ? "bg-emerald-500" : "bg-stone-400"}`}
+                        style={{ width: `${barWidth}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Últimos votos */}
+          {votos.length > 0 && (
+            <div className="mt-5 pt-4 border-t border-stone-100">
+              <p className="text-[10.5px] uppercase tracking-[0.2em] text-stone-400 font-bold mb-2">Últimos votos</p>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {votos.slice(0, 10).map(v => (
+                  <div key={v.id} className="flex items-center gap-2 text-[13px]">
+                    <span className="font-semibold text-stone-700">{v.nombre}</span>
+                    <span className="text-stone-400">→</span>
+                    <span className="text-stone-600">{v.destino}</span>
+                    {v.empresa && <span className="text-stone-400 text-[11px]">({v.empresa})</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -991,6 +1315,17 @@ export default function App() {
               <LayoutGrid className="w-4 h-4" />
               Ver todo
             </button>
+            <button
+              onClick={() => setViewMode("votar")}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                viewMode === "votar"
+                  ? "bg-violet-600 text-white shadow-sm"
+                  : "text-stone-600 hover:text-stone-900 hover:bg-stone-50"
+              }`}
+            >
+              <Vote className="w-4 h-4" />
+              Votar
+            </button>
           </div>
 
           {viewMode === "grid" && (
@@ -1035,6 +1370,11 @@ export default function App() {
         {/* WIZARD VIEW */}
         {viewMode === "wizard" && (
           <WizardView groupedDestinations={groupedDestinations} />
+        )}
+
+        {/* VOTACIÓN */}
+        {viewMode === "votar" && (
+          <VotingPanel groupedDestinations={groupedDestinations} />
         )}
 
         {/* GRID — DEPENDE DEL TAB */}

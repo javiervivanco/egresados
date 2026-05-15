@@ -5,3 +5,6 @@ dist
 .vite
 # viajes.json es artifact intermedio de 'make extract'/'make split'
 src/data/viajes.json
+.env
+api.txt
+pass.txt
