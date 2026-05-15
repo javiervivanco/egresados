@@ -568,24 +568,40 @@ function DestinationCard({ empresa, destino, planes }) {
 
 // === WIZARD ===
 const STEPS = [
-  { key: "destino",  label: "Destino",  icon: MapPin },
-  { key: "empresa",  label: "Empresa",  icon: Building2 },
-  { key: "duracion", label: "Duración", icon: CalendarClock },
-  { key: "plan",     label: "Resultado", icon: Wallet },
+  { key: "duracion", label: "Días",      icon: CalendarClock },
+  { key: "destino",  label: "Destino",   icon: MapPin },
+  { key: "plan",     label: "Opciones",  icon: Wallet },
 ];
 
 function WizardView({ groupedDestinations }) {
   const [step, setStep] = useState(0);
-  const [destino, setDestino] = useState(null);
-  const [empresa, setEmpresa] = useState(null);
   const [duracion, setDuracion] = useState(null);
+  const [destino, setDestino] = useState(null);
 
-  const reset = () => { setStep(0); setDestino(null); setEmpresa(null); setDuracion(null); };
+  const reset = () => { setStep(0); setDuracion(null); setDestino(null); };
 
-  // Step 1 options: unique destinations grouped by provincia
+  // Step 0: unique durations across all data
+  const duracionOptions = useMemo(() => {
+    const set = new Set();
+    groupedDestinations.forEach(g => {
+      g.planes.forEach(p => {
+        if (p.Dias && p.Noches) set.add(`${p.Dias}|${p.Noches}`);
+      });
+    });
+    return Array.from(set).map(d => {
+      const [dias, noches] = d.split("|").map(Number);
+      return { dias, noches, key: d };
+    }).sort((a, b) => a.dias - b.dias);
+  }, [groupedDestinations]);
+
+  // Step 1: destinations that have the selected duration, grouped by provincia
   const destinoOptions = useMemo(() => {
+    if (!duracion) return [];
+    const [dias, noches] = duracion.split("|").map(Number);
     const buckets = {};
     for (const g of groupedDestinations) {
+      const hasDur = g.planes.some(p => p.Dias === dias && p.Noches === noches);
+      if (!hasDur) continue;
       const prov = guessProvincia(g.destino);
       if (!buckets[prov]) buckets[prov] = new Set();
       buckets[prov].add(g.destino);
@@ -600,92 +616,58 @@ function WizardView({ groupedDestinations }) {
       return a.localeCompare(b);
     });
     return provs.map(p => ({ provincia: p, destinos: Array.from(buckets[p]).sort() }));
-  }, [groupedDestinations]);
+  }, [groupedDestinations, duracion]);
 
-  // Step 2 options: companies that offer the selected destination
-  const empresaOptions = useMemo(() => {
-    if (!destino) return [];
-    const set = new Set();
-    groupedDestinations.forEach(g => { if (g.destino === destino) set.add(g.empresa); });
-    return Array.from(set).sort();
-  }, [groupedDestinations, destino]);
-
-  // Step 3 options: durations for selected dest + company
-  const duracionOptions = useMemo(() => {
-    if (!destino || !empresa) return [];
-    const set = new Set();
-    groupedDestinations.forEach(g => {
-      if (g.destino === destino && g.empresa === empresa) {
-        g.planes.forEach(p => {
-          if (p.Dias && p.Noches) set.add(`${p.Dias}|${p.Noches}`);
-        });
-      }
-    });
-    return Array.from(set).map(d => {
-      const [dias, noches] = d.split("|").map(Number);
-      return { dias, noches, key: d };
-    }).sort((a, b) => a.dias - b.dias);
-  }, [groupedDestinations, destino, empresa]);
-
-  // Step 4: filtered cards
+  // Step 2: filtered cards sorted by cheapest cuota mensual
   const resultCards = useMemo(() => {
-    return groupedDestinations.filter(g => {
+    const filtered = groupedDestinations.filter(g => {
       if (destino && g.destino !== destino) return false;
-      if (empresa && g.empresa !== empresa) return false;
       if (duracion) {
         const [dias, noches] = duracion.split("|").map(Number);
-        const hasDur = g.planes.some(p => p.Dias === dias && p.Noches === noches);
-        if (!hasDur) return false;
+        return g.planes.some(p => p.Dias === dias && p.Noches === noches);
       }
       return true;
     });
-  }, [groupedDestinations, destino, empresa, duracion]);
+    // Sort by cheapest cuota mensual
+    const minCuota = (g) => {
+      const cs = g.planes.map(p => p.Cuota_Mensual).filter(v => v != null && !isNaN(v) && v > 0);
+      return cs.length ? Math.min(...cs) : Infinity;
+    };
+    const minTotal = (g) => {
+      const ts = g.planes.map(p => p.Total_Final).filter(v => v != null && !isNaN(v) && v > 0);
+      return ts.length ? Math.min(...ts) : Infinity;
+    };
+    return filtered.sort((a, b) => minCuota(a) - minCuota(b) || minTotal(a) - minTotal(b));
+  }, [groupedDestinations, destino, duracion]);
 
-  // Auto-select if only one option
+  // Auto-advance if only one destination for the selected duration
   useEffect(() => {
-    if (step === 1 && empresaOptions.length === 1 && !empresa) {
-      setEmpresa(empresaOptions[0]);
-      setStep(2);
-    }
-  }, [step, empresaOptions, empresa]);
-
-  useEffect(() => {
-    if (step === 2 && duracionOptions.length <= 1 && !duracion) {
-      if (duracionOptions.length === 1) setDuracion(duracionOptions[0].key);
-      setStep(3);
-    }
-  }, [step, duracionOptions, duracion]);
-
-  const goBack = () => {
-    if (step === 3) {
-      // If duración was auto-skipped, go back to empresa or destino
-      if (duracionOptions.length <= 1) {
-        setDuracion(null);
-        if (empresaOptions.length === 1) {
-          setEmpresa(null);
-          setStep(0);
-        } else {
-          setStep(1);
-        }
-      } else {
-        setDuracion(null);
+    if (step === 1) {
+      const allDestinos = destinoOptions.flatMap(g => g.destinos);
+      if (allDestinos.length === 1 && !destino) {
+        setDestino(allDestinos[0]);
         setStep(2);
       }
-    } else if (step === 2) {
-      if (empresaOptions.length === 1) {
-        setEmpresa(null);
+    }
+  }, [step, destinoOptions, destino]);
+
+  const goBack = () => {
+    if (step === 2) {
+      const allDestinos = destinoOptions.flatMap(g => g.destinos);
+      if (allDestinos.length === 1) {
+        setDestino(null);
+        setDuracion(null);
         setStep(0);
       } else {
-        setEmpresa(null);
+        setDestino(null);
         setStep(1);
       }
     } else if (step === 1) {
-      setDestino(null);
+      setDuracion(null);
       setStep(0);
     }
   };
 
-  // Progress bar
   const progress = ((step + 1) / STEPS.length) * 100;
 
   return (
@@ -702,10 +684,8 @@ function WizardView({ groupedDestinations }) {
                 key={s.key}
                 onClick={() => {
                   if (i < step) {
-                    // Allow clicking previous steps
-                    if (i === 0) { setDestino(null); setEmpresa(null); setDuracion(null); setStep(0); }
-                    else if (i === 1) { setEmpresa(null); setDuracion(null); setStep(1); }
-                    else if (i === 2) { setDuracion(null); setStep(2); }
+                    if (i === 0) { setDuracion(null); setDestino(null); setStep(0); }
+                    else if (i === 1) { setDestino(null); setStep(1); }
                   }
                 }}
                 disabled={i > step}
@@ -735,11 +715,50 @@ function WizardView({ groupedDestinations }) {
       {/* Step content */}
       <div className="min-h-[320px]">
 
-        {/* STEP 0: Destino */}
+        {/* STEP 0: Duración */}
         {step === 0 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
+            <h2 className="font-serif text-2xl sm:text-3xl text-stone-900 tracking-tight mb-1">¿Cuántos días de viaje?</h2>
+            <p className="text-stone-500 text-sm mb-5">Elegí la duración del viaje de egresados</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {duracionOptions.map(d => {
+                // Count destinations and companies for this duration
+                const matchingCards = groupedDestinations.filter(g =>
+                  g.planes.some(p => p.Dias === d.dias && p.Noches === d.noches)
+                );
+                const destCount = new Set(matchingCards.map(g => g.destino)).size;
+                const empCount = new Set(matchingCards.map(g => g.empresa)).size;
+                return (
+                  <button
+                    key={d.key}
+                    onClick={() => { setDuracion(d.key); setDestino(null); setStep(1); }}
+                    className="flex items-center gap-3 px-4 py-4 bg-white border-2 border-stone-200 rounded-xl text-left hover:border-stone-400 hover:shadow-md transition-all group"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center shrink-0">
+                      <CalendarClock className="w-6 h-6 text-stone-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-stone-900 text-lg">{d.dias} días · {d.noches} {d.noches === 1 ? "noche" : "noches"}</p>
+                      <p className="text-[12px] text-stone-500">{destCount} {destCount === 1 ? "destino" : "destinos"} · {empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 shrink-0" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 1: Destino */}
+        {step === 1 && (
+          <div className="animate-[fadeIn_0.25s_ease-out]">
+            <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
+              <ChevronLeft className="w-4 h-4" /> Cambiar duración
+            </button>
             <h2 className="font-serif text-2xl sm:text-3xl text-stone-900 tracking-tight mb-1">¿A dónde quieren ir?</h2>
-            <p className="text-stone-500 text-sm mb-5">Elegí el destino del viaje de egresados</p>
+            <p className="text-stone-500 text-sm mb-5">
+              Destinos disponibles para viajes de <span className="font-semibold text-stone-700">{duracion && duracion.replace("|", " días · ")} noches</span>
+            </p>
             <div className="space-y-6">
               {destinoOptions.map(({ provincia, destinos }) => (
                 <div key={provincia}>
@@ -749,20 +768,27 @@ function WizardView({ groupedDestinations }) {
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                     {destinos.map(d => {
-                      // Count companies for this destination
-                      const empresasCount = new Set(groupedDestinations.filter(g => g.destino === d).map(g => g.empresa)).size;
+                      const [dias, noches] = duracion.split("|").map(Number);
+                      const matchingCards = groupedDestinations.filter(g =>
+                        g.destino === d && g.planes.some(p => p.Dias === dias && p.Noches === noches)
+                      );
+                      const empCount = new Set(matchingCards.map(g => g.empresa)).size;
+                      const minC = Math.min(...matchingCards.flatMap(g => g.planes.map(p => p.Cuota_Mensual)).filter(v => v != null && v > 0));
                       return (
                         <button
                           key={d}
-                          onClick={() => { setDestino(d); setEmpresa(null); setDuracion(null); setStep(1); }}
+                          onClick={() => { setDestino(d); setStep(2); }}
                           className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-stone-200 rounded-xl text-left hover:border-stone-400 hover:shadow-md transition-all group"
                         >
                           <MapPin className="w-5 h-5 text-stone-400 group-hover:text-stone-700 transition-colors shrink-0" />
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             <p className="font-semibold text-stone-900 text-[15px] truncate">{d}</p>
-                            <p className="text-[12px] text-stone-500">{empresasCount} {empresasCount === 1 ? "empresa" : "empresas"}</p>
+                            <p className="text-[12px] text-stone-500">{empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
+                            {isFinite(minC) && (
+                              <p className="text-[12px] text-emerald-700 font-semibold">desde {fmt(minC)}/mes</p>
+                            )}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 ml-auto shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 shrink-0" />
                         </button>
                       );
                     })}
@@ -773,97 +799,22 @@ function WizardView({ groupedDestinations }) {
           </div>
         )}
 
-        {/* STEP 1: Empresa */}
-        {step === 1 && (
-          <div className="animate-[fadeIn_0.25s_ease-out]">
-            <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
-              <ChevronLeft className="w-4 h-4" /> Cambiar destino
-            </button>
-            <h2 className="font-serif text-2xl sm:text-3xl text-stone-900 tracking-tight mb-1">¿Con qué empresa?</h2>
-            <p className="text-stone-500 text-sm mb-5">
-              {empresaOptions.length} {empresaOptions.length === 1 ? "empresa ofrece" : "empresas ofrecen"} viaje a <span className="font-semibold text-stone-700">{destino}</span>
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {empresaOptions.map(emp => {
-                const accent = COMPANY_ACCENT[emp] || COMPANY_ACCENT["Flecha"];
-                const cards = groupedDestinations.filter(g => g.destino === destino && g.empresa === emp);
-                const planesCount = cards.reduce((acc, g) => acc + g.planes.length, 0);
-                const minC = Math.min(...cards.flatMap(g => g.planes.map(p => p.Cuota_Mensual)).filter(v => v != null && v > 0));
-                return (
-                  <button
-                    key={emp}
-                    onClick={() => { setEmpresa(emp); setDuracion(null); setStep(2); }}
-                    className={`flex items-center gap-3 px-4 py-4 bg-white border-2 border-stone-200 rounded-xl text-left hover:shadow-md transition-all group hover:border-stone-400`}
-                  >
-                    <div className={`w-10 h-10 rounded-full ${accent.bg} ${accent.border} border flex items-center justify-center shrink-0`}>
-                      <span className={`w-3 h-3 rounded-full ${accent.dot}`} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-stone-900 text-[15px]">{emp}</p>
-                      <p className="text-[12px] text-stone-500">{planesCount} planes de pago</p>
-                      {isFinite(minC) && (
-                        <p className="text-[12px] text-emerald-700 font-semibold">desde {fmt(minC)}/mes</p>
-                      )}
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 shrink-0" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: Duración */}
+        {/* STEP 2: Resultados ordenados por precio */}
         {step === 2 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
             <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Atrás
             </button>
-            <h2 className="font-serif text-2xl sm:text-3xl text-stone-900 tracking-tight mb-1">¿Cuántos días?</h2>
-            <p className="text-stone-500 text-sm mb-5">
-              Duraciones disponibles para <span className="font-semibold text-stone-700">{destino}</span> con <span className="font-semibold text-stone-700">{empresa}</span>
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {duracionOptions.map(d => (
-                <button
-                  key={d.key}
-                  onClick={() => { setDuracion(d.key); setStep(3); }}
-                  className="flex items-center gap-3 px-4 py-4 bg-white border-2 border-stone-200 rounded-xl text-left hover:border-stone-400 hover:shadow-md transition-all group"
-                >
-                  <div className="w-10 h-10 rounded-full bg-stone-100 flex items-center justify-center shrink-0">
-                    <CalendarClock className="w-5 h-5 text-stone-600" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-stone-900 text-lg">{d.dias} días · {d.noches} {d.noches === 1 ? "noche" : "noches"}</p>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 ml-auto shrink-0" />
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: Resultados */}
-        {step === 3 && (
-          <div className="animate-[fadeIn_0.25s_ease-out]">
-            <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
-              <ChevronLeft className="w-4 h-4" /> Atrás
-            </button>
-            <h2 className="font-serif text-2xl sm:text-3xl text-stone-900 tracking-tight mb-1">Tu viaje</h2>
+            <h2 className="font-serif text-2xl sm:text-3xl text-stone-900 tracking-tight mb-1">Opciones de menor a mayor precio</h2>
             <div className="flex flex-wrap items-center gap-2 mb-5">
-              {destino && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-200 text-stone-800 rounded-full text-sm font-semibold">
-                  <MapPin className="w-3.5 h-3.5" /> {destino}
-                </span>
-              )}
-              {empresa && (
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 ${(COMPANY_ACCENT[empresa] || COMPANY_ACCENT["Flecha"]).bg} ${(COMPANY_ACCENT[empresa] || COMPANY_ACCENT["Flecha"]).text} rounded-full text-sm font-semibold`}>
-                  <Building2 className="w-3.5 h-3.5" /> {empresa}
-                </span>
-              )}
               {duracion && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-200 text-stone-800 rounded-full text-sm font-semibold">
                   <CalendarClock className="w-3.5 h-3.5" /> {duracion.replace("|", "d · ")}n
+                </span>
+              )}
+              {destino && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-200 text-stone-800 rounded-full text-sm font-semibold">
+                  <MapPin className="w-3.5 h-3.5" /> {destino}
                 </span>
               )}
               <button
@@ -873,6 +824,7 @@ function WizardView({ groupedDestinations }) {
                 <Search className="w-3.5 h-3.5" /> Nueva búsqueda
               </button>
             </div>
+            <p className="text-stone-500 text-sm mb-4">{resultCards.length} {resultCards.length === 1 ? "opción encontrada" : "opciones encontradas"}, ordenadas por cuota más baja</p>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-6">
               {resultCards.map(g => (
                 <DestinationCard
