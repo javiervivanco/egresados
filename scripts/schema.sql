@@ -41,6 +41,10 @@ create table if not exists votos (
   destino text not null,
   empresa text,
   duracion text,
+  prioridad smallint,          -- 1=1ra opción, 2=2da, 3=3ra
+  plan_pago text,
+  total_final integer,
+  cuota_mensual integer,
   comentario text
 );
 
