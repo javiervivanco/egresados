@@ -13,6 +13,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { loadIdentity, clearIdentity } from "./lib/identity";
 import { loadPlanes } from "./lib/data";
 import { track } from "./lib/funnel/tracking";
+import { useVisitor } from "./lib/visitor/useVisitor";
+import { VISITOR, nudgeFor } from "./lib/visitor/classify";
 
 // Normalización de destinos: variantes que son el mismo lugar se unifican bajo un nombre canónico.
 const DESTINO_ALIAS = {
@@ -1380,6 +1382,12 @@ export default function App() {
   const familia = identity.nombre;
   const [totalVotos, setTotalVotos] = useState(null);
 
+  // Router de visita: clasifica a quién tenemos enfrente (anónimo / lead /
+  // familia activa / tibia / cliente confirmado) para mostrar el componente
+  // correcto y los nudges de marketing. La FSM y el dashboard de etapa
+  // siguen siendo internos al "lado familia" — esto routea ARRIBA.
+  const visitor = useVisitor();
+
   // Planes: source of truth ahora es DB. Si DB vacía/inalcanzable, lib/data.js
   // cae a los JSON. rawRows queda con shape legacy (PascalCase + DESTINO_ALIAS).
   const [rawRows, setRawRows] = useState([]);
@@ -1522,9 +1530,13 @@ export default function App() {
   }), [groupedDestinations, groupedByProvincia]);
 
   // FUNNEL DE ONBOARDING: pantalla completa, no modal.
-  // Cuando se completa, la familia tiene identidad en localStorage y montamos
-  // el funnel de ELECCIÓN (la app actual con cards/wizard/votación/mensajes).
-  if (!familia) {
+  // Routeo por tipo de visita:
+  //   anon (puro o con UTM) / lead frío sin familia → onboarding completo
+  //   lead tibio / familia activa / cliente confirmado → dashboard
+  // El nudge banner (lead_tibio) se renderiza adentro del dashboard.
+  if (visitor.loading) return null;
+  const irOnboarding = !familia || (visitor.type === VISITOR.LEAD_FRIO && !identity.familiaId);
+  if (irOnboarding) {
     return <OnboardingFunnel onReady={(id) => setIdentity(id)} />;
   }
 
@@ -1606,6 +1618,22 @@ export default function App() {
             </div>
           )}
         </div>
+
+        {/* Nudge banner por tipo de visita (lead tibio = inactividad).
+            Familia activa y cliente confirmado no muestran banner (null). */}
+        {(() => {
+          const n = nudgeFor(visitor.type);
+          if (!n) return null;
+          const tone = n.tone === "warn"
+            ? "border-accent/40 bg-accent/10"
+            : "border-primary/30 bg-primary/5";
+          return (
+            <div className={`rounded-xl border ${tone} px-4 py-3 mb-4 text-sm`}>
+              <p className="font-semibold text-foreground">{n.title}</p>
+              <p className="text-muted-foreground text-[13px] mt-1">{n.body}</p>
+            </div>
+          );
+        })()}
 
         {/* FUNNEL STATUS: hero por etapa con CTA primario único */}
         {identity.familiaId && identity.grupoId && (
