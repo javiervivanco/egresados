@@ -1,0 +1,63 @@
+name: Admin bootstrap
+
+# Crea un usuario admin (super_admin o empresa_admin) en el Supabase prod
+# linkeado. Idempotente: si el email ya existe, resetea password + profile.
+#
+# Cómo usar:
+#   1. Settings → Secrets and variables → Actions → New repository secret
+#      - SUPABASE_URL         = https://<ref>.supabase.co
+#      - SUPABASE_SECRET_KEY  = sb_secret_... (service_role)
+#   2. Actions → "Admin bootstrap" → Run workflow → completar inputs.
+
+on:
+  workflow_dispatch:
+    inputs:
+      email:
+        description: "Email del admin"
+        required: true
+        type: string
+      rol:
+        description: "Rol"
+        required: true
+        type: choice
+        default: super_admin
+        options:
+          - super_admin
+          - empresa_admin
+      nombre:
+        description: "Nombre (opcional)"
+        required: false
+        type: string
+      empresa_slug:
+        description: "Empresa slug (solo si rol=empresa_admin)"
+        required: false
+        type: string
+      password:
+        description: "Password inicial (default Cambiar123!)"
+        required: false
+        type: string
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install deps
+        run: npm ci --omit=optional
+
+      - name: Create admin user
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          EMAIL: ${{ inputs.email }}
+          ROL: ${{ inputs.rol }}
+          NOMBRE: ${{ inputs.nombre }}
+          EMPRESA_SLUG: ${{ inputs.empresa_slug }}
+          PASSWORD: ${{ inputs.password }}
+        run: node scripts/create-admin-user.mjs
