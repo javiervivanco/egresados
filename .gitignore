@@ -6,5 +6,15 @@ dist
 # viajes.json es artifact intermedio de 'make extract'/'make split'
 src/data/viajes.json
 .env
+.env.local
 api.txt
 pass.txt
+# Supabase CLI temp / state (la CLI guarda volumes y logs acá)
+supabase/.branches
+supabase/.temp
+admin/node_modules
+admin/dist
+
+# Playwright MCP cache (screenshots, snapshots, console logs por sesión)
+.playwright-mcp/
+*.png

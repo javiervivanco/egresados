@@ -1,10 +1,17 @@
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { ChevronDown, ChevronUp, ChevronLeft, ChevronRight, Bus, Plane, MapPin, Bed, Lightbulb, Users, Shield, Tag, Sparkles, Calculator, BookOpen, Wallet, CalendarClock, Info, CheckCircle2, Building2, Search, LayoutGrid, Wand2, MessageCircleWarning, Vote, BarChart3, Send, CreditCard, DollarSign, Star } from "lucide-react";
 import { supabase } from "./supabase";
-
-// Carga todos los JSON por empresa en src/data/. Cada archivo debe ser un array de filas.
-// Para agregar una empresa nueva: tirar un <slug>.json al directorio y reiniciar dev.
-const dataModules = import.meta.glob("./data/*.json", { eager: true, import: "default" });
+import OnboardingFunnel from "./components/OnboardingFunnel";
+import MeetingDateVoting from "./components/MeetingDateVoting";
+import Messaging from "./components/Messaging";
+import VentaCerrada from "./components/VentaCerrada";
+import ReportarCorreccion from "./components/ReportarCorreccion";
+import FunnelStatus from "./components/FunnelStatus";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { loadIdentity, clearIdentity } from "./lib/identity";
+import { loadPlanes } from "./lib/data";
 
 // Normalización de destinos: variantes que son el mismo lugar se unifican bajo un nombre canónico.
 const DESTINO_ALIAS = {
@@ -15,12 +22,6 @@ const DESTINO_ALIAS = {
 };
 const normalizeDestino = (d) => DESTINO_ALIAS[d] || d;
 
-const RAW = Object.entries(dataModules)
-  .filter(([path]) => !path.endsWith("/viajes.json"))
-  .flatMap(([, mod]) => (Array.isArray(mod) ? mod : []))
-  .filter(r => r && r.Empresa)
-  .map(r => ({ ...r, Destino: normalizeDestino(r.Destino) }));
-
 // === HELPERS ===
 const fmt = (n) => {
   if (n == null || n === "" || isNaN(n)) return "—";
@@ -28,12 +29,12 @@ const fmt = (n) => {
 };
 
 const COMPANY_ACCENT = {
-  "Flecha":          { bg: "bg-fogata-light", border: "border-fogata",     text: "text-fogata",     dot: "bg-fogata",     ring: "ring-fogata/40",     chip: "bg-fogata/30" },
-  "Super Tour":      { bg: "bg-tierra-light", border: "border-tierra",     text: "text-tierra",     dot: "bg-tierra",     ring: "ring-tierra/40",     chip: "bg-tierra/30" },
-  "Recrear":         { bg: "bg-pino-light",   border: "border-pino-mid",   text: "text-pino",       dot: "bg-pino",       ring: "ring-pino/40",       chip: "bg-pino-mid/30" },
-  "Lake Travel":     { bg: "bg-noche-light",  border: "border-noche-mid",  text: "text-noche",      dot: "bg-noche",      ring: "ring-noche/40",      chip: "bg-noche-mid/30" },
-  "Serrano":         { bg: "bg-hojas-light",  border: "border-hojas",      text: "text-pino",       dot: "bg-hojas-mid",  ring: "ring-hojas/50",      chip: "bg-hojas/40" },
-  "Puerto Aventura": { bg: "bg-noche-light",  border: "border-noche/60",   text: "text-noche-mid",  dot: "bg-noche-mid",  ring: "ring-noche-mid/40", chip: "bg-noche-mid/20" },
+  "Flecha":          { bg: "bg-accent/20", border: "border-accent",     text: "text-accent",     dot: "bg-accent",     ring: "ring-accent/40",     chip: "bg-accent/30" },
+  "Super Tour":      { bg: "bg-destructive/20", border: "border-destructive",     text: "text-destructive",     dot: "bg-destructive",     ring: "ring-destructive/40",     chip: "bg-destructive/30" },
+  "Recrear":         { bg: "bg-primary/10",   border: "border-primary/70",   text: "text-primary",       dot: "bg-primary",       ring: "ring-primary/40",       chip: "bg-primary/70/30" },
+  "Lake Travel":     { bg: "bg-muted",  border: "border-muted-foreground",  text: "text-foreground",      dot: "bg-foreground",      ring: "ring-foreground/40",      chip: "bg-muted-foreground/30" },
+  "Serrano":         { bg: "bg-secondary/30",  border: "border-secondary",      text: "text-primary",       dot: "bg-secondary/70",  ring: "ring-secondary/50",      chip: "bg-secondary/40" },
+  "Puerto Aventura": { bg: "bg-muted",  border: "border-foreground/60",   text: "text-muted-foreground",  dot: "bg-muted-foreground",  ring: "ring-muted-foreground/40", chip: "bg-muted-foreground/20" },
 };
 
 // Mapa explícito destino → provincia. Usa los nombres ya normalizados por DESTINO_ALIAS.
@@ -166,7 +167,7 @@ function GuideBanner() {
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-sky-700 font-bold">Guía rápida</p>
-            <h3 className="font-serif text-xl text-noche leading-tight">¿Cómo leer esta comparativa?</h3>
+            <h3 className="font-sans italic text-xl text-foreground leading-tight">¿Cómo leer esta comparativa?</h3>
           </div>
         </div>
         <span className="flex items-center gap-1.5 text-sm text-sky-700 font-semibold">
@@ -193,7 +194,7 @@ function GuideBanner() {
 }
 
 // === DESTINATION CARD ===
-function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted }) {
+function DestinationCard({ empresa, destino, planes, defaultNombre = "", familiaId = null, onVoted, votingEnabled = true }) {
   const accent = COMPANY_ACCENT[empresa] || COMPANY_ACCENT["Flecha"];
   const TransIcon = planes[0].Transporte === "Avión" ? Plane : Bus;
 
@@ -281,9 +282,9 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
     <div className="bg-white border-2 sm:border border-stone-300 sm:border-stone-200 rounded-2xl overflow-hidden shadow-md sm:shadow-sm hover:shadow-xl hover:border-stone-300 transition-all duration-300 flex flex-col">
 
       {/* HERO — destino + precio grande arriba (metáfora Instagram: imagen primero) */}
-      <div className="bg-hojas-light text-noche px-4 sm:px-6 pt-4 sm:pt-5 pb-4 sm:pb-5 relative overflow-hidden border-b border-hojas/40">
+      <div className="bg-secondary/30 text-foreground px-4 sm:px-6 pt-4 sm:pt-5 pb-4 sm:pb-5 relative overflow-hidden border-b border-secondary/40">
         {isCheapest && (
-          <span className="absolute top-3 right-3 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-bold tracking-widest uppercase rounded-full bg-fogata text-noche flex items-center gap-1 z-10 shadow-sm">
+          <span className="absolute top-3 right-3 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[9px] sm:text-[10px] font-bold tracking-widest uppercase rounded-full bg-accent text-foreground flex items-center gap-1 z-10 shadow-sm">
             <CheckCircle2 className="w-3 h-3" strokeWidth={2.4} />
             <Tooltip text={GLOSARIO.cheapest} label="Más económico" align="right" className="leading-none" />
           </span>
@@ -293,17 +294,17 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
         <div className="flex items-center justify-between gap-2 mb-2 sm:mb-3 pr-24">
           <div className="flex items-center gap-2 min-w-0">
             <span className={`w-2 h-2 rounded-full ${accent.dot} shrink-0`} />
-            <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.22em] font-bold text-pino truncate">{empresa}</p>
+            <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.22em] font-bold text-primary truncate">{empresa}</p>
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 bg-white/70 backdrop-blur rounded-md border border-pino/15 shrink-0">
-            <TransIcon className="w-3.5 h-3.5 text-pino" strokeWidth={2} />
-            <span className="text-[11.5px] sm:text-[12.5px] font-semibold text-pino">{plan.Transporte}</span>
+          <div className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 bg-white/70 backdrop-blur rounded-md border border-primary/15 shrink-0">
+            <TransIcon className="w-3.5 h-3.5 text-primary" strokeWidth={2} />
+            <span className="text-[11.5px] sm:text-[12.5px] font-semibold text-primary">{plan.Transporte}</span>
           </div>
         </div>
 
         {/* destino headline */}
-        <h3 className="font-serif text-2xl sm:text-3xl text-noche leading-tight tracking-tight flex items-start gap-1.5 sm:gap-2 mb-4 sm:mb-5">
-          <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-fogata mt-0.5 sm:mt-1 shrink-0" strokeWidth={1.8} />
+        <h3 className="font-sans italic text-2xl sm:text-3xl text-foreground leading-tight tracking-tight flex items-start gap-1.5 sm:gap-2 mb-4 sm:mb-5">
+          <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-accent mt-0.5 sm:mt-1 shrink-0" strokeWidth={1.8} />
           <span className="break-words">{destino}</span>
         </h3>
 
@@ -311,19 +312,19 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
         {hasMonthlyPayments && (
           <div>
             <div className="flex items-center gap-1.5 mb-1">
-              <Calculator className="w-3 h-3 text-pino" strokeWidth={2.2} />
-              <p className="text-[10px] uppercase tracking-[0.18em] text-pino font-bold">
+              <Calculator className="w-3 h-3 text-primary" strokeWidth={2.2} />
+              <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold">
                 <Tooltip text={GLOSARIO.cuotaMensual} label="Pagás por mes" />
               </p>
             </div>
-            <p className="font-serif text-4xl sm:text-5xl font-bold leading-none tracking-tight text-noche">{fmt(plan.Cuota_Mensual)}</p>
-            <p className="text-[12px] sm:text-[13px] text-noche/75 mt-1.5 sm:mt-2 leading-snug">
-              Durante <span className="font-bold text-noche">{cuotasRestantes} {cuotasRestantes === 1 ? "mes" : "meses"}</span>
+            <p className="font-sans italic text-4xl sm:text-5xl font-bold leading-none tracking-tight text-foreground">{fmt(plan.Cuota_Mensual)}</p>
+            <p className="text-[12px] sm:text-[13px] text-foreground/75 mt-1.5 sm:mt-2 leading-snug">
+              Durante <span className="font-bold text-foreground">{cuotasRestantes} {cuotasRestantes === 1 ? "mes" : "meses"}</span>
               {hasPrimeraCuotaDistinta ? " después de la primera" : ""}
               {ultimaCuotaLabel && (
-                <span className="text-noche/55">
+                <span className="text-foreground/55">
                   {" · "}
-                  <Tooltip text={GLOSARIO.ultimaCuota} label={<>última: <span className="font-bold text-noche">{ultimaCuotaLabel}</span></>} />
+                  <Tooltip text={GLOSARIO.ultimaCuota} label={<>última: <span className="font-bold text-foreground">{ultimaCuotaLabel}</span></>} />
                 </span>
               )}
             </p>
@@ -332,18 +333,18 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
 
         {!hasMonthlyPayments && plan.Cantidad_Cuotas === 1 && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-pino font-bold mb-1">
+            <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold mb-1">
               <Tooltip text={GLOSARIO.contado} label="Pago único" />
             </p>
-            <p className="font-serif text-3xl sm:text-4xl font-bold leading-none tracking-tight text-noche">{fmt(plan.Total_Final || upfront)}</p>
-            <p className="text-[12px] sm:text-[13px] text-noche/75 mt-1.5">Todo en un solo pago al firmar</p>
+            <p className="font-sans italic text-3xl sm:text-4xl font-bold leading-none tracking-tight text-foreground">{fmt(plan.Total_Final || upfront)}</p>
+            <p className="text-[12px] sm:text-[13px] text-foreground/75 mt-1.5">Todo en un solo pago al firmar</p>
           </div>
         )}
 
         {plan.Cantidad_Cuotas == null && (
           <div>
-            <p className="text-[10px] uppercase tracking-[0.18em] text-pino font-bold mb-1">Plan a coordinar</p>
-            <p className="text-[13px] sm:text-[14px] text-noche/85 leading-snug">Las condiciones de pago se acuerdan directamente con la empresa</p>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold mb-1">Plan a coordinar</p>
+            <p className="text-[13px] sm:text-[14px] text-foreground/85 leading-snug">Las condiciones de pago se acuerdan directamente con la empresa</p>
           </div>
         )}
       </div>
@@ -386,7 +387,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
               )}
             </label>
             {availablePlans.length === 1 ? (
-              <div className="w-full bg-stone-50 border-2 border-stone-200 rounded-xl px-4 py-3 text-[15px] font-semibold text-noche">
+              <div className="w-full bg-stone-50 border-2 border-stone-200 rounded-xl px-4 py-3 text-[15px] font-semibold text-foreground">
                 {plan.Plan_Pago || "Plan único"}
               </div>
             ) : (
@@ -394,7 +395,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
                 <select
                   value={selectedPlanIdx}
                   onChange={(e) => setSelectedPlanIdx(Number(e.target.value))}
-                  className="w-full appearance-none bg-white border-2 border-stone-300 rounded-xl pl-4 pr-10 py-3 text-[15px] font-semibold text-noche focus:outline-none focus:border-noche hover:border-stone-400 transition-colors cursor-pointer"
+                  className="w-full appearance-none bg-white border-2 border-stone-300 rounded-xl pl-4 pr-10 py-3 text-[15px] font-semibold text-foreground focus:outline-none focus:border-foreground hover:border-stone-400 transition-colors cursor-pointer"
                 >
                   {availablePlans.map((p, i) => (
                     <option key={i} value={i}>{p.Plan_Pago}</option>
@@ -426,7 +427,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
                   ].filter(Boolean).join(" + ")}
                 </p>
               </div>
-              <p className="font-serif text-base sm:text-lg font-semibold leading-none shrink-0 text-noche">{fmt(upfront)}</p>
+              <p className="font-sans italic text-base sm:text-lg font-semibold leading-none shrink-0 text-foreground">{fmt(upfront)}</p>
             </div>
           )}
           {hasAnticipo && (
@@ -437,7 +438,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
                 </p>
                 <p className="text-[10.5px] text-stone-500">aparte de las cuotas</p>
               </div>
-              <p className="font-serif text-base sm:text-lg font-semibold leading-none shrink-0 text-noche">{fmt(plan.Anticipo_Saldo)}</p>
+              <p className="font-sans italic text-base sm:text-lg font-semibold leading-none shrink-0 text-foreground">{fmt(plan.Anticipo_Saldo)}</p>
             </div>
           )}
           {plan.Total_Final && (
@@ -446,14 +447,14 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
                 <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.14em] text-stone-500 font-semibold">
                   <Tooltip text={GLOSARIO.totalFinal} label="Total del viaje" />
                 </p>
-                <p className="font-serif text-lg sm:text-xl font-semibold text-noche leading-none">{fmt(plan.Total_Final)}</p>
+                <p className="font-sans italic text-lg sm:text-xl font-semibold text-foreground leading-none">{fmt(plan.Total_Final)}</p>
               </div>
               {showContadoRef && (
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-[10.5px] sm:text-[11px] text-stone-500">
                     <Tooltip text={GLOSARIO.contado} label="Si pagás de contado" />
                   </p>
-                  <p className="font-serif text-sm sm:text-base font-semibold text-stone-700">{fmt(planContado.Total_Final)}</p>
+                  <p className="font-sans italic text-sm sm:text-base font-semibold text-stone-700">{fmt(planContado.Total_Final)}</p>
                 </div>
               )}
             </div>
@@ -484,7 +485,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
         <div className="px-4 sm:px-6 border-t border-stone-200">
           <button
             onClick={() => setShowActivities(!showActivities)}
-            className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-stone-700 hover:text-noche transition-colors"
+            className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-stone-700 hover:text-foreground transition-colors"
           >
             <span className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
@@ -509,7 +510,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
       <div className="px-4 sm:px-6 border-t border-stone-200">
         <button
           onClick={() => setShowConditions(!showConditions)}
-          className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-stone-700 hover:text-noche transition-colors"
+          className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-stone-700 hover:text-foreground transition-colors"
         >
           <span className="flex items-center gap-2">
             <Info className="w-4 h-4" />
@@ -558,16 +559,33 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", onVoted
         )}
       </div>
 
-      {/* CTA — Quiero este viaje */}
+      {/* CTA — Quiero este viaje (sólo cuando es momento de votar planes) */}
       <div className="px-4 sm:px-6 pt-3 pb-4 sm:pb-5 border-t border-stone-200 bg-stone-50/60">
-        <QuickVote
-          destino={destino}
-          empresa={empresa}
-          duracion={selectedDuration}
-          planes={availablePlans}
-          defaultNombre={defaultNombre}
-          onVoted={onVoted}
-        />
+        {votingEnabled ? (
+          <QuickVote
+            destino={destino}
+            empresa={empresa}
+            duracion={selectedDuration}
+            planes={availablePlans}
+            defaultNombre={defaultNombre}
+            familiaId={familiaId}
+            onVoted={onVoted}
+          />
+        ) : (
+          <div className="text-[12px] text-stone-500 text-center py-2">
+            La votación de planes se habilita después de la reunión grupal.
+          </div>
+        )}
+        {/* Reporte de error: solo si esta card vino de DB (planes tienen id_db) */}
+        <div className="mt-2 flex justify-end">
+          <ReportarCorreccion
+            planId={plan?.id_db}
+            destinoId={plan?.destino_id}
+            empresaNombre={empresa}
+            destinoNombre={destino}
+            planNombre={plan?.Plan_Pago}
+          />
+        </div>
       </div>
     </div>
   );
@@ -580,7 +598,7 @@ const STEPS = [
   { key: "plan",     label: "Opciones",  icon: Wallet },
 ];
 
-function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
+function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVoted, votingEnabled = true }) {
   const [step, setStep] = useState(0);
   const [duracion, setDuracion] = useState(null);
   const [destino, setDestino] = useState(null);
@@ -704,14 +722,14 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
                 }}
                 disabled={i > step}
                 className={`flex items-center gap-1.5 text-[12px] sm:text-[13px] font-semibold transition-all px-2 py-1 rounded-lg ${
-                  active ? "text-noche bg-stone-200"
+                  active ? "text-foreground bg-stone-200"
                   : done ? "text-stone-700 hover:bg-stone-100 cursor-pointer"
                   : "text-stone-400"
                 }`}
               >
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
                   active ? "bg-stone-900 text-white"
-                  : done ? "bg-fogata text-white"
+                  : done ? "bg-accent text-white"
                   : "bg-stone-200 text-stone-400"
                 }`}>
                   {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
@@ -732,7 +750,7 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
         {/* STEP 0: Duración */}
         {step === 0 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
-            <h2 className="font-serif text-2xl sm:text-3xl text-noche tracking-tight mb-1">¿Cuántos días de viaje?</h2>
+            <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">¿Cuántos días de viaje?</h2>
             <p className="text-stone-500 text-sm mb-5">Elegí la duración del viaje de egresados</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {duracionOptions.map(d => {
@@ -752,7 +770,7 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
                       <CalendarClock className="w-6 h-6 text-stone-600" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-noche text-lg">{d.dias} días · {d.noches} {d.noches === 1 ? "noche" : "noches"}</p>
+                      <p className="font-semibold text-foreground text-lg">{d.dias} días · {d.noches} {d.noches === 1 ? "noche" : "noches"}</p>
                       <p className="text-[12px] text-stone-500">{destCount} {destCount === 1 ? "destino" : "destinos"} · {empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
                     </div>
                     <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 shrink-0" />
@@ -769,7 +787,7 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
             <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Cambiar duración
             </button>
-            <h2 className="font-serif text-2xl sm:text-3xl text-noche tracking-tight mb-1">¿A dónde quieren ir?</h2>
+            <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">¿A dónde quieren ir?</h2>
             <p className="text-stone-500 text-sm mb-5">
               Destinos disponibles para viajes de <span className="font-semibold text-stone-700">{duracion && duracion.replace("|", " días · ")} noches</span>
             </p>
@@ -796,10 +814,10 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
                         >
                           <MapPin className="w-5 h-5 text-stone-400 group-hover:text-stone-700 transition-colors shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <p className="font-semibold text-noche text-[15px] truncate">{d}</p>
+                            <p className="font-semibold text-foreground text-[15px] truncate">{d}</p>
                             <p className="text-[12px] text-stone-500">{empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
                             {isFinite(minC) && (
-                              <p className="text-[12px] text-pino font-semibold">desde {fmt(minC)}/mes</p>
+                              <p className="text-[12px] text-primary font-semibold">desde {fmt(minC)}/mes</p>
                             )}
                           </div>
                           <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 shrink-0" />
@@ -819,7 +837,7 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
             <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Atrás
             </button>
-            <h2 className="font-serif text-2xl sm:text-3xl text-noche tracking-tight mb-1">Opciones de menor a mayor precio</h2>
+            <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">Opciones de menor a mayor precio</h2>
             <div className="flex flex-wrap items-center gap-2 mb-5">
               {duracion && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-200 text-stone-800 rounded-full text-sm font-semibold">
@@ -847,7 +865,9 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
                   destino={g.destino}
                   planes={g.planes}
                   defaultNombre={defaultNombre}
+                  familiaId={familiaId}
                   onVoted={onVoted}
+                  votingEnabled={votingEnabled}
                 />
               ))}
             </div>
@@ -865,7 +885,7 @@ function WizardView({ groupedDestinations, defaultNombre, onVoted }) {
 }
 
 // === QUICK VOTE (botón inline en resultados del wizard) ===
-function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = "", onVoted }) {
+function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = "", familiaId = null, onVoted }) {
   const [step, setStep] = useState(0); // 0=closed, 1=nombre, 2=prioridad, 3=plan, 4=confirm
   const [nombre, setNombre] = useState(defaultNombre);
   const [prioridad, setPrioridad] = useState(null); // 1, 2, 3
@@ -874,11 +894,13 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
   const [done, setDone] = useState(false);
   const [error, setError] = useState(null);
 
-  // Planes únicos de pago disponibles para este card
+  // Planes únicos de pago disponibles para este card. Preservamos id_db (FK al
+  // plan en DB) para poder escribir en votos_plan cuando la familia está autenticada.
   const planOptions = useMemo(() => {
     return planes
       .filter(p => p.Plan_Pago && p.Total_Final)
       .map(p => ({
+        plan_id: p.id_db || null,
         plan_pago: p.Plan_Pago,
         total_final: p.Total_Final,
         cuota_mensual: p.Cuota_Mensual || null,
@@ -904,17 +926,32 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       total_final: selectedPlan?.total_final || null,
       cuota_mensual: selectedPlan?.cuota_mensual || null,
     };
+    // Insert legacy (la tabla votos sigue siendo la fuente del VotingResults actual).
     const { error: err } = await supabase.from("votos").insert(row);
+    if (err) { setSending(false); setError("Error al votar: " + err.message); return; }
+
+    // Si tenemos familiaId + plan_id (datos provenientes de DB, no de JSON),
+    // grabamos también en votos_plan con upsert por (familia_id, prioridad)
+    // para que se vincule a la entidad familia y permita futuros agregados con FK.
+    if (familiaId && selectedPlan?.plan_id) {
+      const { error: err2 } = await supabase
+        .from("votos_plan")
+        .upsert(
+          { familia_id: familiaId, plan_id: selectedPlan.plan_id, prioridad },
+          { onConflict: "familia_id,prioridad" }
+        );
+      if (err2) console.warn("votos_plan upsert:", err2.message); // no bloqueamos el flujo
+    }
+
     setSending(false);
-    if (err) { setError("Error al votar: " + err.message); return; }
     setDone(true);
     if (onVoted) setTimeout(() => onVoted(), 1200);
   };
 
   if (done) {
     return (
-      <div className="flex items-center justify-center gap-2 px-4 py-3.5 bg-hojas/20 border-2 border-hojas rounded-2xl text-pino font-semibold animate-[fadeIn_0.2s_ease-out]">
-        <CheckCircle2 className="w-5 h-5 text-fogata" />
+      <div className="flex items-center justify-center gap-2 px-4 py-3.5 bg-secondary/20 border-2 border-secondary rounded-2xl text-primary font-semibold animate-[fadeIn_0.2s_ease-out]">
+        <CheckCircle2 className="w-5 h-5 text-accent" />
         <span>¡Voto registrado!</span>
       </div>
     );
@@ -924,7 +961,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
     return (
       <button
         onClick={() => setStep(defaultNombre ? 2 : 1)}
-        className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-pino hover:bg-pino/90 active:bg-pino/80 text-white font-bold rounded-2xl transition-all shadow-md hover:shadow-lg text-[15px]"
+        className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-primary hover:bg-primary/90 active:bg-primary/80 text-white font-bold rounded-2xl transition-all shadow-md hover:shadow-lg text-[15px]"
       >
         <Vote className="w-5 h-5" />
         ¡Quiero este viaje!
@@ -933,11 +970,11 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
   }
 
   return (
-    <div className="bg-hojas/20 border-2 border-pino/40 rounded-2xl p-3.5 space-y-2.5 animate-[fadeIn_0.15s_ease-out]">
+    <div className="bg-secondary/20 border-2 border-primary/40 rounded-2xl p-3.5 space-y-2.5 animate-[fadeIn_0.15s_ease-out]">
       {/* Step 1: Nombre */}
       {step === 1 && (
         <>
-          <p className="text-[13px] text-pino font-semibold">① Ingresá tu nombre</p>
+          <p className="text-[13px] text-primary font-semibold">① Ingresá tu nombre</p>
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -946,12 +983,12 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
               onKeyDown={(e) => e.key === "Enter" && nombre.trim() && setStep(2)}
               placeholder="Ej: Familia García"
               autoFocus
-              className="flex-1 min-w-0 bg-white border-2 border-pino/40 rounded-xl px-3.5 py-2.5 text-[15px] text-noche focus:outline-none focus:border-pino transition-colors"
+              className="flex-1 min-w-0 bg-white border-2 border-primary/40 rounded-xl px-3.5 py-2.5 text-[15px] text-foreground focus:outline-none focus:border-primary transition-colors"
             />
             <button
               onClick={() => setStep(2)}
               disabled={!nombre.trim()}
-              className="px-4 py-2.5 bg-pino hover:bg-pino/90 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors shrink-0 text-[14px]"
+              className="px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors shrink-0 text-[14px]"
             >
               Siguiente
             </button>
@@ -962,31 +999,31 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       {/* Step 2: Prioridad */}
       {step === 2 && (
         <>
-          <p className="text-[13px] text-pino font-semibold">② ¿Qué preferencia es este viaje?</p>
+          <p className="text-[13px] text-primary font-semibold">② ¿Qué preferencia es este viaje?</p>
           <div className="space-y-1.5">
-            {[{n:1, label:"1ra opción", desc:"Mi primera elección", color:"bg-fogata"}, {n:2, label:"2da opción", desc:"Mi segunda elección", color:"bg-stone-300"}, {n:3, label:"3ra opción", desc:"Mi tercera elección", color:"bg-orange-300"}].map(({n, label, desc, color}) => (
+            {[{n:1, label:"1ra opción", desc:"Mi primera elección", color:"bg-accent"}, {n:2, label:"2da opción", desc:"Mi segunda elección", color:"bg-stone-300"}, {n:3, label:"3ra opción", desc:"Mi tercera elección", color:"bg-orange-300"}].map(({n, label, desc, color}) => (
               <button
                 key={n}
                 onClick={() => { setPrioridad(n); setStep(planOptions.length > 0 ? 3 : 4); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg border text-[13px] transition-colors flex items-center gap-2.5 ${prioridad === n ? "border-pino bg-hojas/30" : "border-stone-200 bg-white hover:bg-hojas/20"}`}
+                className={`w-full text-left px-3 py-2.5 rounded-lg border text-[13px] transition-colors flex items-center gap-2.5 ${prioridad === n ? "border-primary bg-secondary/30" : "border-stone-200 bg-white hover:bg-secondary/20"}`}
               >
                 <span className={`w-6 h-6 rounded-full ${color} flex items-center justify-center text-white font-bold text-[12px] shrink-0`}>{n}</span>
                 <span><span className="font-semibold text-stone-800">{label}</span> <span className="text-stone-400">— {desc}</span></span>
               </button>
             ))}
           </div>
-          <button onClick={() => setStep(1)} className="text-pino/50 hover:text-pino text-[12px]">← Atrás</button>
+          <button onClick={() => setStep(1)} className="text-primary/50 hover:text-primary text-[12px]">← Atrás</button>
         </>
       )}
 
       {/* Step 3: Elegir plan de pago */}
       {step === 3 && (
         <>
-          <p className="text-[13px] text-pino font-semibold">③ Elegí forma de pago <span className="font-normal text-pino/70">(opcional)</span></p>
+          <p className="text-[13px] text-primary font-semibold">③ Elegí forma de pago <span className="font-normal text-primary/70">(opcional)</span></p>
           <div className="space-y-1.5 max-h-40 overflow-y-auto">
             <button
               onClick={() => { setSelectedPlan(null); setStep(4); }}
-              className={`w-full text-left px-3 py-2 rounded-lg border text-[13px] transition-colors ${!selectedPlan ? "border-pino bg-hojas/30" : "border-stone-200 bg-white hover:bg-hojas/20"}`}
+              className={`w-full text-left px-3 py-2 rounded-lg border text-[13px] transition-colors ${!selectedPlan ? "border-primary bg-secondary/30" : "border-stone-200 bg-white hover:bg-secondary/20"}`}
             >
               <span className="text-stone-600">Sin preferencia</span>
             </button>
@@ -994,7 +1031,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
               <button
                 key={i}
                 onClick={() => { setSelectedPlan(p); setStep(4); }}
-                className="w-full text-left px-3 py-2 rounded-lg border border-stone-200 bg-white hover:bg-hojas/20 hover:border-pino/60 text-[13px] transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg border border-stone-200 bg-white hover:bg-secondary/20 hover:border-primary/60 text-[13px] transition-colors"
               >
                 <span className="font-semibold text-stone-800">{p.plan_pago}</span>
                 <span className="text-stone-500 ml-1.5">
@@ -1004,14 +1041,14 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
               </button>
             ))}
           </div>
-          <button onClick={() => setStep(2)} className="text-pino/50 hover:text-pino text-[12px]">← Atrás</button>
+          <button onClick={() => setStep(2)} className="text-primary/50 hover:text-primary text-[12px]">← Atrás</button>
         </>
       )}
 
       {/* Step 4: Confirmar */}
       {step === 4 && (
         <>
-          <p className="text-[13px] text-pino font-semibold">{planOptions.length > 0 ? "④" : "③"} Confirmar voto</p>
+          <p className="text-[13px] text-primary font-semibold">{planOptions.length > 0 ? "④" : "③"} Confirmar voto</p>
           <div className="bg-white rounded-lg px-3 py-2 text-[13px] space-y-0.5">
             <p className="text-stone-700"><span className="font-semibold">Nombre:</span> {nombre}</p>
             <p className="text-stone-700"><span className="font-semibold">Preferencia:</span> {prioridad === 1 ? "1ra opción" : prioridad === 2 ? "2da opción" : "3ra opción"}</p>
@@ -1027,14 +1064,14 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
           <div className="flex items-center gap-2">
             <button
               onClick={() => setStep(planOptions.length > 0 ? 3 : 2)}
-              className="px-3 py-2.5 text-pino hover:text-pino font-semibold text-[13px]"
+              className="px-3 py-2.5 text-primary hover:text-primary font-semibold text-[13px]"
             >
               ← Atrás
             </button>
             <button
               onClick={handleVote}
               disabled={sending}
-              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-pino hover:bg-pino/90 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors text-[15px]"
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors text-[15px]"
             >
               <Send className="w-4 h-4" />
               {sending ? "..." : "Confirmar voto"}
@@ -1045,7 +1082,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
 
       {error && <p className="text-red-600 text-[13px] font-medium">{error}</p>}
       {step === 1 && (
-        <button onClick={() => setStep(0)} className="text-pino/50 hover:text-pino text-[12px]">
+        <button onClick={() => setStep(0)} className="text-primary/50 hover:text-primary text-[12px]">
           Cancelar
         </button>
       )}
@@ -1067,7 +1104,7 @@ function BarList({ items, color }) {
           <div key={label}>
             <div className="flex items-baseline justify-between mb-0.5">
               <span className="text-sm font-semibold text-stone-800 flex items-center gap-1.5">
-                {i === 0 && items.length > 1 && <span className="text-fogata">🏆</span>}
+                {i === 0 && items.length > 1 && <span className="text-accent">🏆</span>}
                 {label}
               </span>
               <span className="text-[12px] text-stone-500 font-semibold">{count} · {pct}%</span>
@@ -1209,11 +1246,11 @@ function VotingResults() {
     <div className="animate-[fadeIn_0.3s_ease-out] max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <div className="w-9 h-9 rounded-full bg-hojas/40 flex items-center justify-center">
-          <BarChart3 className="w-5 h-5 text-pino" />
+        <div className="w-9 h-9 rounded-full bg-secondary/40 flex items-center justify-center">
+          <BarChart3 className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h3 className="font-serif text-2xl text-noche">Resultados</h3>
+          <h3 className="font-sans italic text-2xl text-foreground">Resultados</h3>
           <p className="text-[12px] text-stone-500">{totalVotos} {totalVotos === 1 ? "voto" : "votos"} hasta ahora</p>
         </div>
       </div>
@@ -1230,21 +1267,21 @@ function VotingResults() {
           {/* POR DESTINO */}
           <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <MapPin className="w-4 h-4 text-fogata" />
-              <h4 className="font-semibold text-noche text-[15px]">Por destino</h4>
+              <MapPin className="w-4 h-4 text-accent" />
+              <h4 className="font-semibold text-foreground text-[15px]">Por destino</h4>
             </div>
-            <BarList items={byDestino} color="bg-fogata" />
+            <BarList items={byDestino} color="bg-accent" />
           </div>
 
           {/* RANKING PONDERADO POR PREFERENCIA */}
           {byDestinoPonderado.length > 0 && (
             <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <Star className="w-4 h-4 text-fogata" />
-                <h4 className="font-semibold text-noche text-[15px]">Ranking por preferencia</h4>
+                <Star className="w-4 h-4 text-accent" />
+                <h4 className="font-semibold text-foreground text-[15px]">Ranking por preferencia</h4>
               </div>
               <p className="text-[11px] text-stone-400 mb-3">1ra opción = 3 pts, 2da = 2 pts, 3ra = 1 pt</p>
-              <BarList items={byDestinoPonderado} color="bg-fogata" />
+              <BarList items={byDestinoPonderado} color="bg-accent" />
             </div>
           )}
 
@@ -1252,10 +1289,10 @@ function VotingResults() {
           {byPrioridad.length > 0 && (
             <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <Star className="w-4 h-4 text-pino/70" />
-                <h4 className="font-semibold text-noche text-[15px]">Votos por orden de preferencia</h4>
+                <Star className="w-4 h-4 text-primary/70" />
+                <h4 className="font-semibold text-foreground text-[15px]">Votos por orden de preferencia</h4>
               </div>
-              <BarList items={byPrioridad} color="bg-pino" />
+              <BarList items={byPrioridad} color="bg-primary" />
             </div>
           )}
 
@@ -1263,7 +1300,7 @@ function VotingResults() {
           <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <Building2 className="w-4 h-4 text-blue-600" />
-              <h4 className="font-semibold text-noche text-[15px]">Por empresa y destino</h4>
+              <h4 className="font-semibold text-foreground text-[15px]">Por empresa y destino</h4>
             </div>
             <BarList items={byEmpresaDestino} color="bg-blue-500" />
           </div>
@@ -1271,20 +1308,20 @@ function VotingResults() {
           {/* POR EMPRESA + DESTINO + DÍAS */}
           <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <CalendarClock className="w-4 h-4 text-pino" />
-              <h4 className="font-semibold text-noche text-[15px]">Por empresa, destino y días</h4>
+              <CalendarClock className="w-4 h-4 text-primary" />
+              <h4 className="font-semibold text-foreground text-[15px]">Por empresa, destino y días</h4>
             </div>
-            <BarList items={byEmpresaDestinoDias} color="bg-pino" />
+            <BarList items={byEmpresaDestinoDias} color="bg-primary" />
           </div>
 
           {/* POR FORMA DE PAGO */}
           {byPlanPago.length > 0 && (
             <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <CreditCard className="w-4 h-4 text-fogata" />
-                <h4 className="font-semibold text-noche text-[15px]">Por forma de pago</h4>
+                <CreditCard className="w-4 h-4 text-accent" />
+                <h4 className="font-semibold text-foreground text-[15px]">Por forma de pago</h4>
               </div>
-              <BarList items={byPlanPago} color="bg-fogata" />
+              <BarList items={byPlanPago} color="bg-accent" />
             </div>
           )}
 
@@ -1293,7 +1330,7 @@ function VotingResults() {
             <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-4 h-4 text-teal-600" />
-                <h4 className="font-semibold text-noche text-[15px]">Por costo total elegido</h4>
+                <h4 className="font-semibold text-foreground text-[15px]">Por costo total elegido</h4>
               </div>
               <BarList items={byCostoTotal} color="bg-teal-500" />
             </div>
@@ -1304,7 +1341,7 @@ function VotingResults() {
             <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-4 h-4 text-rose-600" />
-                <h4 className="font-semibold text-noche text-[15px]">Por cuota mensual elegida</h4>
+                <h4 className="font-semibold text-foreground text-[15px]">Por cuota mensual elegida</h4>
               </div>
               <BarList items={byCuota} color="bg-rose-500" />
             </div>
@@ -1320,7 +1357,7 @@ function VotingResults() {
             {votos.slice(0, 15).map(v => (
               <div key={v.id} className="flex items-center gap-x-2 text-[13px]">
                 {v.prioridad && (
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px] shrink-0 ${v.prioridad === 1 ? "bg-fogata" : v.prioridad === 2 ? "bg-stone-400" : "bg-orange-400"}`}>{v.prioridad}</span>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px] shrink-0 ${v.prioridad === 1 ? "bg-accent" : v.prioridad === 2 ? "bg-stone-400" : "bg-orange-400"}`}>{v.prioridad}</span>
                 )}
                 <span className="font-semibold text-stone-700">{v.nombre}</span>
                 <span className="text-stone-400">→</span>
@@ -1336,9 +1373,24 @@ function VotingResults() {
 
 // === MAIN ===
 export default function App() {
-  const [familia, setFamilia] = useState(() => localStorage.getItem("egresados_familia") || "");
-  const [familiaInput, setFamiliaInput] = useState("");
+  // Identidad: nombre legacy (string) + familiaId/grupoId (DB FKs). Ver lib/identity.js.
+  const [identity, setIdentity] = useState(() => loadIdentity());
+  const familia = identity.nombre;
   const [totalVotos, setTotalVotos] = useState(null);
+
+  // Planes: source of truth ahora es DB. Si DB vacía/inalcanzable, lib/data.js
+  // cae a los JSON. rawRows queda con shape legacy (PascalCase + DESTINO_ALIAS).
+  const [rawRows, setRawRows] = useState([]);
+  const [dataSource, setDataSource] = useState(null); // "db" | "json" | null (loading)
+  useEffect(() => {
+    let active = true;
+    loadPlanes().then(({ rows, source }) => {
+      if (!active) return;
+      setRawRows(rows.map((r) => ({ ...r, Destino: normalizeDestino(r.Destino) })));
+      setDataSource(source);
+    });
+    return () => { active = false; };
+  }, []);
 
   // Fetch total votos on mount
   useEffect(() => {
@@ -1347,13 +1399,6 @@ export default function App() {
       if (count != null) setTotalVotos(count);
     });
   }, []);
-
-  const handleFamiliaSubmit = () => {
-    const val = familiaInput.trim();
-    if (!val) return;
-    localStorage.setItem("egresados_familia", val);
-    setFamilia(val);
-  };
 
   useEffect(() => {
     const style = document.createElement("style");
@@ -1368,7 +1413,7 @@ export default function App() {
     // en avión y en bus, cada transporte es una card separada — si no, los planes de bus
     // quedarían escondidos dentro del select de la card de avión.
     const groups = {};
-    RAW.forEach(r => {
+    rawRows.forEach(r => {
       const key = `${r.Empresa}|||${r.Destino}|||${r.Transporte || ""}`;
       if (!groups[key]) groups[key] = { empresa: r.Empresa, destino: r.Destino, transporte: r.Transporte, planes: [] };
       groups[key].planes.push(r);
@@ -1381,7 +1426,7 @@ export default function App() {
       (a.transporte || "").localeCompare(b.transporte || "")
     );
     return arr;
-  }, []);
+  }, [rawRows]);
 
   // Helpers de orden por precio: priorizamos cuota mensual mínima (lo que la familia paga
   // mes a mes, alineado con el HERO de la card). Fallback a Total_Final mínimo si la card
@@ -1436,7 +1481,15 @@ export default function App() {
   }, [groupedDestinations]);
 
   const [tab, setTab] = useState("precio");
-  const [viewMode, setViewMode] = useState("wizard"); // "wizard" | "grid" | "resultados"
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [etapaId, setEtapaId] = useState(null); // etapa del funnel calculada por FunnelStatus
+  const [comparativaOpen, setComparativaOpen] = useState(true);
+  // En etapa "coordinar" la comparativa arranca cerrada (la primaria es votar fechas).
+  // En el resto queda abierta para que la familia compare.
+  useEffect(() => {
+    if (etapaId == null) return;
+    setComparativaOpen(etapaId !== "coordinar");
+  }, [etapaId]);
   const [misVotos, setMisVotos] = useState([]); // votos del familia actual
 
   // Cargar votos propios cuando hay familia
@@ -1463,44 +1516,22 @@ export default function App() {
     provincias: groupedByProvincia.length,
   }), [groupedDestinations, groupedByProvincia]);
 
+  // FUNNEL DE ONBOARDING: pantalla completa, no modal.
+  // Cuando se completa, la familia tiene identidad en localStorage y montamos
+  // el funnel de ELECCIÓN (la app actual con cards/wizard/votación/mensajes).
+  if (!familia) {
+    return <OnboardingFunnel onReady={(id) => setIdentity(id)} />;
+  }
+
+  // FunnelStatus CTA → scroll a la sección correspondiente.
+  const handleAccion = (target) => {
+    const map = { fechas: "fechas", comparar: "comparar", votar: "comparar", mensajes: "mensajes", venta: "venta" };
+    const el = document.getElementById(map[target] || "comparar");
+    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="min-h-screen bg-white font-sans">
-      {/* Modal identificación familia */}
-      {!familia && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 sm:p-8 animate-[fadeIn_0.3s_ease-out]">
-            <div className="text-center mb-6">
-              <div className="w-14 h-14 rounded-full bg-hojas/30 flex items-center justify-center mx-auto mb-3">
-                <Users className="w-7 h-7 text-pino" />
-              </div>
-              <h2 className="font-serif text-2xl text-noche mb-1">¡Hola!</h2>
-              <p className="text-stone-500 text-sm">¿De qué familia o alumno/a estamos viendo viajes?</p>
-            </div>
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={familiaInput}
-                onChange={(e) => setFamiliaInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleFamiliaSubmit()}
-                placeholder="Ej: Familia García / Lucía García"
-                autoFocus
-                className="w-full bg-white border-2 border-stone-200 rounded-xl px-4 py-3 text-[16px] text-noche focus:outline-none focus:border-pino transition-colors"
-              />
-              <button
-                onClick={handleFamiliaSubmit}
-                disabled={!familiaInput.trim()}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-pino hover:bg-pino/90 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors text-[15px]"
-              >
-                Empezar a comparar
-              </button>
-            </div>
-            {totalVotos != null && totalVotos > 0 && (
-              <p className="text-center text-stone-400 text-[12px] mt-4">{totalVotos} {totalVotos === 1 ? "familia ya votó" : "familias ya votaron"}</p>
-            )}
-          </div>
-        </div>
-      )}
-
       <div className="h-1.5 bg-gradient-to-r from-orange-500 via-red-500 via-green-500 via-cyan-500 via-blue-500 to-fuchsia-500" />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-12">
@@ -1516,7 +1547,11 @@ export default function App() {
                   {totalVotos != null && <span className="ml-2 text-stone-400">· {totalVotos} {totalVotos === 1 ? "voto" : "votos"} totales</span>}
                 </span>
                 <button
-                  onClick={() => { localStorage.removeItem("egresados_familia"); setFamilia(""); setFamiliaInput(""); }}
+                  onClick={async () => {
+                    clearIdentity();
+                    if (supabase) await supabase.auth.signOut();
+                    setIdentity({ nombre: "", familiaId: null, grupoId: null });
+                  }}
                   className="text-[11px] text-stone-400 hover:text-stone-600 underline"
                 >
                   Cambiar
@@ -1524,7 +1559,7 @@ export default function App() {
               </div>
             )}
           </div>
-          <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-noche tracking-tight leading-none mb-2.5 sm:mb-4">
+          <h1 className="font-sans italic text-3xl sm:text-4xl lg:text-5xl text-foreground tracking-tight leading-none mb-2.5 sm:mb-4">
             Viajes de <em className="text-stone-700">egresados</em>
           </h1>
           <p className="text-stone-600 max-w-2xl text-[14px] sm:text-base leading-relaxed">
@@ -1539,14 +1574,14 @@ export default function App() {
                 {[1, 2, 3].map(n => {
                   const v = votosPorPrioridad[n];
                   const label = n === 1 ? "1ra opción" : n === 2 ? "2da opción" : "3ra opción";
-                  const dotColor = n === 1 ? "bg-fogata" : n === 2 ? "bg-hojas" : "bg-tierra";
+                  const dotColor = n === 1 ? "bg-accent" : n === 2 ? "bg-secondary" : "bg-destructive";
                   if (v) {
                     return (
-                      <div key={n} className="flex items-start gap-2 px-2.5 py-2 bg-pino-light border border-pino/30 rounded-lg">
+                      <div key={n} className="flex items-start gap-2 px-2.5 py-2 bg-primary/10 border border-primary/30 rounded-lg">
                         <span className={`w-5 h-5 rounded-full ${dotColor} flex items-center justify-center text-white font-bold text-[11px] shrink-0 mt-0.5`}>{n}</span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-[10.5px] uppercase tracking-wider text-pino font-bold leading-tight">{label} <CheckCircle2 className="inline w-3 h-3 ml-0.5" strokeWidth={2.5} /></p>
-                          <p className="text-[12px] text-noche font-semibold truncate leading-tight mt-0.5">{v.destino}</p>
+                          <p className="text-[10.5px] uppercase tracking-wider text-primary font-bold leading-tight">{label} <CheckCircle2 className="inline w-3 h-3 ml-0.5" strokeWidth={2.5} /></p>
+                          <p className="text-[12px] text-foreground font-semibold truncate leading-tight mt-0.5">{v.destino}</p>
                           <p className="text-[10.5px] text-stone-500 truncate leading-tight">{v.empresa}</p>
                         </div>
                       </div>
@@ -1567,101 +1602,141 @@ export default function App() {
           )}
         </div>
 
-        <GuideBanner />
+        {/* FUNNEL STATUS: hero por etapa con CTA primario único */}
+        {identity.familiaId && identity.grupoId && (
+          <FunnelStatus
+            familiaId={identity.familiaId}
+            grupoId={identity.grupoId}
+            onAccion={handleAccion}
+            onEtapa={setEtapaId}
+          />
+        )}
 
-        {/* TOGGLE WIZARD / GRID */}
-        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-          <div className="flex items-center gap-1 p-1 bg-white border border-stone-200 rounded-xl">
-            <button
-              onClick={() => setViewMode("wizard")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                viewMode === "wizard"
-                  ? "bg-stone-900 text-white shadow-sm"
-                  : "text-stone-600 hover:text-noche hover:bg-stone-50"
-              }`}
-            >
-              <Wand2 className="w-4 h-4" />
-              Buscar viaje
-            </button>
-            <button
-              onClick={() => setViewMode("grid")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                viewMode === "grid"
-                  ? "bg-stone-900 text-white shadow-sm"
-                  : "text-stone-600 hover:text-noche hover:bg-stone-50"
-              }`}
-            >
-              <LayoutGrid className="w-4 h-4" />
-              Ver todo
-            </button>
-            <button
-              onClick={() => setViewMode("resultados")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                viewMode === "resultados"
-                  ? "bg-pino text-white shadow-sm"
-                  : "text-stone-600 hover:text-noche hover:bg-stone-50"
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              Resultados
-            </button>
+        {/* Venta cerrada: banner final cuando el grupo confirmó su viaje */}
+        {identity.grupoId && (
+          <div id="venta">
+            <VentaCerrada grupoId={identity.grupoId} />
           </div>
+        )}
 
-          {viewMode === "grid" && (
-            <div className="flex items-center gap-1 p-1 bg-white border border-stone-200 rounded-xl">
-              <button
-                onClick={() => setTab("precio")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                  tab === "precio"
-                    ? "bg-stone-900 text-white shadow-sm"
-                    : "text-stone-600 hover:text-noche hover:bg-stone-50"
-                }`}
-              >
-                <Wallet className="w-4 h-4" />
-                Por cuota
-              </button>
-              <button
-                onClick={() => setTab("provincia")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                  tab === "provincia"
-                    ? "bg-stone-900 text-white shadow-sm"
-                    : "text-stone-600 hover:text-noche hover:bg-stone-50"
-                }`}
-              >
-                <MapPin className="w-4 h-4" />
-                Por provincia
-              </button>
-              <button
-                onClick={() => setTab("empresa")}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
-                  tab === "empresa"
-                    ? "bg-stone-900 text-white shadow-sm"
-                    : "text-stone-600 hover:text-noche hover:bg-stone-50"
-                }`}
-              >
-                <Building2 className="w-4 h-4" />
-                Por empresa
-              </button>
-            </div>
+        {/* ETAPA "COORDINAR": sólo MeetingDateVoting es primario */}
+        {etapaId === "coordinar" && identity.familiaId && identity.grupoId && (
+          <div id="fechas" className="scroll-mt-6">
+            <MeetingDateVoting familiaId={identity.familiaId} grupoId={identity.grupoId} />
+          </div>
+        )}
+
+        {/* ETAPA "REUNION": MeetingDateVoting muestra la confirmada para referencia */}
+        {etapaId === "reunion" && identity.familiaId && identity.grupoId && (
+          <div id="fechas" className="scroll-mt-6">
+            <MeetingDateVoting familiaId={identity.familiaId} grupoId={identity.grupoId} />
+          </div>
+        )}
+
+        {/* Mensajería: siempre disponible como colapsable. Auto-oculta sin hilos. */}
+        <div id="mensajes" className="scroll-mt-6">
+          {identity.familiaId && identity.grupoId && (
+            <Messaging
+              familiaId={identity.familiaId}
+              grupoId={identity.grupoId}
+              familiaNombre={familia}
+            />
           )}
         </div>
 
-        {/* WIZARD VIEW */}
-        {viewMode === "wizard" && (
-          <WizardView groupedDestinations={groupedDestinations} defaultNombre={familia} onVoted={() => { setViewMode("resultados"); setTotalVotos(v => v != null ? v + 1 : 1); }} />
-        )}
+        {/* COMPARATIVA — gating por etapa: en "coordinar" arranca cerrada. */}
+        <Collapsible
+          id="comparar"
+          open={comparativaOpen}
+          onOpenChange={setComparativaOpen}
+          className="scroll-mt-6"
+        >
+          {etapaId === "coordinar" && !comparativaOpen && (
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 mb-6 hover:bg-stone-50 transition">
+                <div className="flex items-center gap-2.5 text-left">
+                  <Search className="w-4 h-4 text-stone-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">¿Querés ir mirando las propuestas?</p>
+                    <p className="text-[12px] text-muted-foreground">Las podés explorar mientras se coordina la reunión. La votación viene después.</p>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-stone-500" />
+              </button>
+            </CollapsibleTrigger>
+          )}
+          {etapaId === "coordinar" && comparativaOpen && (
+            <CollapsibleTrigger asChild>
+              <button className="w-full flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-4 py-2 mb-4 hover:bg-stone-50 transition">
+                <p className="text-[12px] font-semibold text-stone-600">Ocultar propuestas</p>
+                <ChevronUp className="w-4 h-4 text-stone-500" />
+              </button>
+            </CollapsibleTrigger>
+          )}
+          <CollapsibleContent>
+        <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-1 p-1 bg-white border border-stone-200 rounded-xl">
+            <button
+              onClick={() => setTab("precio")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                tab === "precio"
+                  ? "bg-stone-900 text-white shadow-sm"
+                  : "text-stone-600 hover:text-foreground hover:bg-stone-50"
+              }`}
+            >
+              <Wallet className="w-4 h-4" />
+              Por cuota
+            </button>
+            <button
+              onClick={() => setTab("provincia")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                tab === "provincia"
+                  ? "bg-stone-900 text-white shadow-sm"
+                  : "text-stone-600 hover:text-foreground hover:bg-stone-50"
+              }`}
+            >
+              <MapPin className="w-4 h-4" />
+              Por provincia
+            </button>
+            <button
+              onClick={() => setTab("empresa")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
+                tab === "empresa"
+                  ? "bg-stone-900 text-white shadow-sm"
+                  : "text-stone-600 hover:text-foreground hover:bg-stone-50"
+              }`}
+            >
+              <Building2 className="w-4 h-4" />
+              Por empresa
+            </button>
+          </div>
 
-        {/* RESULTADOS */}
-        {viewMode === "resultados" && (
-          <VotingResults />
-        )}
+          <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Wand2 className="w-4 h-4" />
+                Te ayudamos a elegir
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+              <DialogTitle className="font-sans italic text-2xl">Encontrá el viaje ideal</DialogTitle>
+              <WizardView
+                groupedDestinations={groupedDestinations}
+                defaultNombre={familia}
+                familiaId={identity.familiaId}
+                onVoted={() => { setWizardOpen(false); setTotalVotos(v => v != null ? v + 1 : 1); }}
+                votingEnabled={etapaId === "decidir"}
+              />
+            </DialogContent>
+          </Dialog>
+        </div>
 
-        {/* GRID — DEPENDE DEL TAB */}
-        {viewMode === "grid" && tab === "precio" && (
+        {/* GRID — siempre visible, según tab */}
+        {tab === "precio" && (
           <div>
             <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-stone-300">
               <Wallet className="w-5 h-5 text-stone-700 shrink-0 self-center" strokeWidth={1.8} />
-              <h2 className="font-serif text-3xl text-noche tracking-tight">De menor a mayor cuota mensual</h2>
+              <h2 className="font-sans italic text-3xl text-foreground tracking-tight">De menor a mayor cuota mensual</h2>
               <span className="text-[11px] uppercase tracking-[0.2em] text-stone-500 font-bold ml-auto">
                 {sortedByPrice.length} tarjetas
               </span>
@@ -1674,20 +1749,22 @@ export default function App() {
                   destino={g.destino}
                   planes={g.planes}
                   defaultNombre={familia}
+                  familiaId={identity.familiaId}
                   onVoted={() => setTotalVotos(v => v != null ? v + 1 : 1)}
+                  votingEnabled={etapaId === "decidir"}
                 />
               ))}
             </div>
           </div>
         )}
 
-        {viewMode === "grid" && tab === "provincia" && (
+        {tab === "provincia" && (
           <div className="space-y-12">
             {groupedByProvincia.map(({ provincia, items }) => (
               <section key={provincia}>
                 <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-stone-300">
                   <MapPin className="w-5 h-5 text-stone-700 shrink-0 self-center" strokeWidth={1.8} />
-                  <h2 className="font-serif text-3xl text-noche tracking-tight">{provincia}</h2>
+                  <h2 className="font-sans italic text-3xl text-foreground tracking-tight">{provincia}</h2>
                   <span className="text-[11px] uppercase tracking-[0.2em] text-stone-500 font-bold ml-auto">
                     {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                   </span>
@@ -1700,7 +1777,9 @@ export default function App() {
                       destino={g.destino}
                       planes={g.planes}
                       defaultNombre={familia}
+                      familiaId={identity.familiaId}
                       onVoted={() => setTotalVotos(v => v != null ? v + 1 : 1)}
+                      votingEnabled={etapaId === "decidir"}
                     />
                   ))}
                 </div>
@@ -1709,7 +1788,7 @@ export default function App() {
           </div>
         )}
 
-        {viewMode === "grid" && tab === "empresa" && (
+        {tab === "empresa" && (
           <div className="space-y-12">
             {groupedByEmpresa.map(({ empresa, items }) => {
               const accent = COMPANY_ACCENT[empresa] || COMPANY_ACCENT["Flecha"];
@@ -1717,7 +1796,7 @@ export default function App() {
                 <section key={empresa}>
                   <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-stone-300">
                     <span className={`w-3 h-3 rounded-full ${accent.dot} self-center shrink-0`} />
-                    <h2 className={`font-serif text-3xl tracking-tight ${accent.text}`}>{empresa}</h2>
+                    <h2 className={`font-sans italic text-3xl tracking-tight ${accent.text}`}>{empresa}</h2>
                     <span className="text-[11px] uppercase tracking-[0.2em] text-stone-500 font-bold ml-auto">
                       {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                     </span>
@@ -1730,6 +1809,7 @@ export default function App() {
                         destino={g.destino}
                         planes={g.planes}
                         defaultNombre={familia}
+                        familiaId={identity.familiaId}
                         onVoted={() => setTotalVotos(v => v != null ? v + 1 : 1)}
                       />
                     ))}
@@ -1739,6 +1819,8 @@ export default function App() {
             })}
           </div>
         )}
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* RESUMEN INFORMATIVO — sin protagonismo, al pie */}
         <div className="mt-16 pt-6 border-t border-stone-200">

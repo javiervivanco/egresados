@@ -1,20 +1,78 @@
 /** @type {import('tailwindcss').Config} */
+// Frontend público — design tokens consumidos via CSS vars (ver src/index.css).
+// Patrón estándar de shadcn/ui.
 export default {
   content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
   theme: {
+    container: {
+      center: true,
+      padding: "1rem",
+      screens: { "2xl": "1400px" },
+    },
     extend: {
       fontFamily: {
-        sans: ['Montserrat', 'sans-serif'],
-        serif: ['Montserrat', 'sans-serif'],
+        sans: ["Montserrat", "sans-serif"],
       },
       colors: {
-        pino:   { DEFAULT: '#2D5A27', light: '#E5EFE3', mid: '#558E4F' },
-        hojas:  { DEFAULT: '#8EB69B', light: '#E8F1EB', mid: '#A5C5B0' },
-        fogata: { DEFAULT: '#F4A261', light: '#FCEBD9', mid: '#F7B989' },
-        tierra: { DEFAULT: '#E76F51', light: '#FBDCD3', mid: '#EE9684' },
-        noche:  { DEFAULT: '#264653', light: '#DCE3E6', mid: '#4A6B79' },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
       },
-    }
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "accordion-down": {
+          from: { height: 0 },
+          to: { height: "var(--radix-accordion-content-height)" },
+        },
+        "accordion-up": {
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: 0 },
+        },
+        fadeIn: {
+          from: { opacity: 0, transform: "translateY(-4px)" },
+          to: { opacity: 1, transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        "accordion-down": "accordion-down 0.2s ease-out",
+        "accordion-up": "accordion-up 0.2s ease-out",
+        fadeIn: "fadeIn 0.2s ease-out",
+      },
+    },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };
