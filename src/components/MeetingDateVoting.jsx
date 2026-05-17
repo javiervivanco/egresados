@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { CalendarClock, Check, X, Building2 } from "lucide-react";
 import { supabase } from "../supabase";
+import { track } from "../lib/funnel/tracking";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
@@ -54,6 +55,7 @@ export default function MeetingDateVoting({ familiaId, grupoId }) {
       .from("votos_fecha")
       .upsert({ familia_id: familiaId, fecha_id: fechaId, voto }, { onConflict: "familia_id,fecha_id" });
     if (error) { alert(error.message); return; }
+    track("voto_fecha", { fecha_id: fechaId, voto, grupo_id: grupoId });
     load();
   };
 

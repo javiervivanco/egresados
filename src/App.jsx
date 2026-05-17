@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { loadIdentity, clearIdentity } from "./lib/identity";
 import { loadPlanes } from "./lib/data";
+import { track } from "./lib/funnel/tracking";
 
 // Normalización de destinos: variantes que son el mismo lugar se unifican bajo un nombre canónico.
 const DESTINO_ALIAS = {
@@ -943,6 +944,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       if (err2) console.warn("votos_plan upsert:", err2.message); // no bloqueamos el flujo
     }
 
+    track("voto_plan", { prioridad, plan_id: selectedPlan?.plan_id || null, empresa, destino });
     setSending(false);
     setDone(true);
     if (onVoted) setTimeout(() => onVoted(), 1200);
@@ -1489,6 +1491,7 @@ export default function App() {
   useEffect(() => {
     if (etapaId == null) return;
     setComparativaOpen(etapaId !== "coordinar");
+    track("funnel_etapa_view", { etapa: etapaId });
   }, [etapaId]);
   const [misVotos, setMisVotos] = useState([]); // votos del familia actual
 

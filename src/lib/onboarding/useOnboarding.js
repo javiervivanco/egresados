@@ -9,6 +9,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { EVENTS, STATES, initialState, transition } from "./machine";
 import * as fx from "./effects";
+import { track, attachLead, currentUTM } from "../funnel/tracking";
 
 function reducer(state, action) {
   return transition(state, action.type, action.payload);
@@ -51,20 +52,28 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
 
   // -------- Actions (closures que envuelven effects + dispatch) --------
 
-  const start = useCallback(() => dispatch({ type: EVENTS.START }), []);
+  const start = useCallback(() => {
+    track("onboarding_landing_start");
+    dispatch({ type: EVENTS.START });
+  }, []);
 
   const submitContacto = useCallback(async (contacto) => {
-    leadRef.current = await fx.upsertLead({ id: leadRef.current, ...contacto });
+    leadRef.current = await fx.upsertLead({
+      id: leadRef.current, ...contacto, ...currentUTM(),
+    });
+    attachLead(contacto.email);
+    track("onboarding_contacto_submit", { lead_id: leadRef.current });
     dispatch({ type: EVENTS.SUBMIT_CONTACTO, payload: contacto });
   }, []);
 
-  const toLibre = useCallback(() => dispatch({ type: EVENTS.TO_LIBRE }), []);
+  const toLibre = useCallback(() => { track("onboarding_escuela_libre"); dispatch({ type: EVENTS.TO_LIBRE }); }, []);
   const toBuscar = useCallback(() => dispatch({ type: EVENTS.TO_BUSCAR }), []);
 
   const pickEscuela = useCallback(async (escuela) => {
     const lista = await fx.fetchGruposByEscuela(escuela.id);
     setGrupos(lista);
     leadRef.current = await fx.upsertLead({ id: leadRef.current, email: machine.ctx.contacto.email, escuela_id: escuela.id });
+    track("onboarding_escuela_pick", { escuela_id: escuela.id, grupos_cargados: lista.length });
     dispatch({ type: EVENTS.PICK_ESCUELA, payload: { escuela, grupos: lista } });
   }, [machine.ctx.contacto.email]);
 
@@ -78,6 +87,7 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
     });
     const escuelaId = await fx.createEscuelaPendiente({ nombre });
     const grupoId = await fx.createGrupoPendiente({ escuela_id: escuelaId, grado, anio_egreso: anio });
+    track("onboarding_escuela_cold_submit", { escuela_id: escuelaId, grupo_id: grupoId });
     dispatch({
       type: EVENTS.SUBMIT_COLD,
       payload: {
@@ -119,8 +129,10 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
         familia_id: familiaId, apellido,
       });
       await fx.signInAnonAndLinkProfile({ familia_id: familiaId });
+      track("onboarding_complete", { familia_id: familiaId, grupo_id: machine.ctx.grupo.id });
       dispatch({ type: EVENTS.SUBMIT_OK, payload: { familiaId } });
     } catch (err) {
+      track("onboarding_fail", { error: err.message });
       dispatch({ type: EVENTS.SUBMIT_FAIL, payload: { error: err.message } });
     }
   }, [machine.ctx]);

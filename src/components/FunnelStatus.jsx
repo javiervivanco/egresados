@@ -41,14 +41,19 @@ export default function FunnelStatus({ familiaId, grupoId, onAccion, onEtapa }) 
 
   const load = useCallback(async () => {
     if (!supabase || !grupoId) return;
-    const [v, fr, vp, vf, m, dest] = await Promise.all([
+    const [v, fr, vp, vf, m, dest, familiasGrupo, votantesPlan] = await Promise.all([
       supabase.from("ventas").select("estado, empresas(nombre)").eq("grupo_id", grupoId).in("estado", ["confirmada", "pagada", "liquidada"]).maybeSingle(),
       supabase.from("fechas_reunion").select("id, fecha, estado, empresas(nombre)").eq("grupo_id", grupoId).in("estado", ["propuesta", "confirmada", "realizada"]).order("fecha"),
       supabase.from("votos_plan").select("prioridad").eq("familia_id", familiaId || 0),
       familiaId ? supabase.from("votos_fecha").select("fecha_id").eq("familia_id", familiaId) : { data: [] },
       supabase.from("mensajes").select("id, leido_grupo, autor_rol").eq("grupo_id", grupoId),
       supabase.from("destinos").select("id", { count: "exact", head: true }).eq("activo", true),
+      supabase.from("familias").select("id", { count: "exact", head: true }).eq("grupo_id", grupoId),
+      // Familias del grupo con al menos 1 voto plan (distinct vía agregado).
+      supabase.rpc ? supabase.from("votos_plan").select("familia_id, familias!inner(grupo_id)").eq("familias.grupo_id", grupoId) : { data: [] },
     ]);
+    const familiasTotal = familiasGrupo?.count || 0;
+    const idsConVoto = new Set((votantesPlan?.data || []).map((r) => r.familia_id));
     setData({
       venta: v?.data || null,
       fechas: fr?.data || [],
@@ -56,6 +61,8 @@ export default function FunnelStatus({ familiaId, grupoId, onAccion, onEtapa }) 
       misVotosFecha: vf?.data || [],
       mensajes: m?.data || [],
       totalDestinos: dest?.count || 0,
+      familiasTotal,
+      familiasVotaron: idsConVoto.size,
     });
   }, [familiaId, grupoId]);
 
@@ -135,8 +142,10 @@ export default function FunnelStatus({ familiaId, grupoId, onAccion, onEtapa }) 
 // ============================================================
 function calcularEtapa(d) {
   if (!d) return null;
-  const { venta, fechas, misVotosPlan, misVotosFecha, mensajes, totalDestinos } = d;
+  const { venta, fechas, misVotosPlan, misVotosFecha, mensajes, totalDestinos,
+          familiasTotal = 0, familiasVotaron = 0 } = d;
   const ahora = new Date();
+  const faltanVotar = Math.max(0, familiasTotal - familiasVotaron);
 
   // 5. CONFIRMADO
   if (venta) {
@@ -156,10 +165,14 @@ function calcularEtapa(d) {
       id: "decidir",
       label: "Decidir",
       titulo: "Ya votaste tus 3 prioridades",
-      subtitulo: "Esperá a que el resto de las familias termine de votar. Te avisamos por mail cuando haya resultado.",
+      subtitulo: faltanVotar > 0
+        ? `Faltan ${faltanVotar} familia${faltanVotar > 1 ? "s" : ""} del grupo por votar. Cuando todas terminen, sale el resultado.`
+        : "Esperá a que el resto de las familias termine de votar. Te avisamos por mail cuando haya resultado.",
       cta: "Ver resultados parciales",
       target: "votar",
-      social: "Tu voto está contado",
+      social: familiasVotaron > 1
+        ? `${familiasVotaron} de ${familiasTotal} familias ya votaron`
+        : "Tu voto está contado",
     };
   }
 

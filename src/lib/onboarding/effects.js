@@ -58,13 +58,17 @@ export async function createGrupoPendiente({ escuela_id, grado, anio_egreso }) {
 export async function upsertLead({ id = null, email, apellido = null, telefono = null,
                                    escuela_id = null, escuela_libre = null,
                                    grado_buscado = null, anio_egreso = null,
-                                   familia_id = null }) {
+                                   familia_id = null,
+                                   utm_source = null, utm_medium = null,
+                                   utm_campaign = null, utm_term = null, utm_content = null }) {
   if (!supabase || !email) return null;
   const { data, error } = await supabase.rpc("lead_upsert", {
     p_id: id, p_email: email, p_apellido: apellido, p_telefono: telefono,
     p_escuela_id: escuela_id, p_escuela_libre: escuela_libre,
     p_grado_buscado: grado_buscado, p_anio_egreso: anio_egreso,
     p_familia_id: familia_id,
+    p_utm_source: utm_source, p_utm_medium: utm_medium,
+    p_utm_campaign: utm_campaign, p_utm_term: utm_term, p_utm_content: utm_content,
   });
   if (error) { console.warn("lead_upsert:", error.message); return id; }
   return data || id;
