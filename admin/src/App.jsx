@@ -32,6 +32,9 @@ import { FamiliasEdit } from "./pages/familias/edit";
 import { AlumnosList } from "./pages/alumnos/list";
 import { ProfilesList } from "./pages/profiles/list";
 import { ProfilesEdit } from "./pages/profiles/edit";
+import { CiudadesList } from "./pages/ciudades/list";
+import { CiudadesCreate } from "./pages/ciudades/create";
+import { CiudadesEdit } from "./pages/ciudades/edit";
 import { DestinosList } from "./pages/destinos/list";
 import { DestinosCreate } from "./pages/destinos/create";
 import { DestinosEdit } from "./pages/destinos/edit";
@@ -113,6 +116,11 @@ export default function App() {
                 <Route path="edit/:id" element={<ProfilesEdit />} />
               </Route>
 
+              <Route path="/ciudades">
+                <Route index element={<CiudadesList />} />
+                <Route path="create" element={<CiudadesCreate />} />
+                <Route path="edit/:id" element={<CiudadesEdit />} />
+              </Route>
               <Route path="/destinos">
                 <Route index element={<DestinosList />} />
                 <Route path="create" element={<DestinosCreate />} />

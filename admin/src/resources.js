@@ -51,6 +51,17 @@ export const resources = [
   // ─── Oferta ───────────────────────────────────────────────────
   { name: "oferta", meta: { label: "Oferta" } },
   {
+    name: "ciudades",
+    list: "/ciudades",
+    create: "/ciudades/create",
+    edit: "/ciudades/edit/:id",
+    meta: { label: "Ciudades", parent: "oferta", canDelete: true },
+  },
+  {
+    name: "empresas_origenes",
+    meta: { hide: true }, // gestionado dentro de empresas/edit, no en sidebar
+  },
+  {
     name: "destinos",
     list: "/destinos",
     create: "/destinos/create",

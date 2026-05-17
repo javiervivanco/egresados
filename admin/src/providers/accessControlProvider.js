@@ -22,6 +22,9 @@ const PERMS = {
     lead_actividades: { list: true, show: true, create: true, edit: true, delete: true },
   },
   empresa_admin: {
+    // Ciudades es catálogo público: read-only para empresa_admin.
+    ciudades:           { list: true, show: true, create: false, edit: false, delete: false },
+    empresas_origenes:  { list: true, show: true, create: true, edit: true, delete: true },
     destinos:       { list: true, show: true, create: true, edit: true, delete: true },
     planes_viaje:   { list: true, show: true, create: true, edit: true, delete: true },
     documentos:     { list: true, show: true, create: true, edit: false, delete: true },
