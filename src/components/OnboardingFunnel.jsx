@@ -6,8 +6,9 @@ import {
   Users, GraduationCap, MapPin, CalendarClock, MessageSquare, Vote,
   ArrowRight, ArrowLeft, Check, Mail, Search,
 } from "lucide-react";
-import { supabase } from "../supabase";
 import { saveIdentity } from "../lib/identity";
+import { STATES } from "../lib/onboarding/machine";
+import { useOnboarding } from "../lib/onboarding/useOnboarding";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -35,48 +36,32 @@ const escuelaLibreSchema = z.object({
   anio_egreso: z.coerce.number().int().min(2024).max(2050).optional(),
 });
 
+// Mapa STATE → step visible en el progress bar.
+const STEP_OF = {
+  [STATES.LANDING]:        0,
+  [STATES.CONTACTO]:       1,
+  [STATES.ESCUELA_BUSCAR]: 2,
+  [STATES.ESCUELA_LIBRE]:  2,
+  [STATES.GRUPO_ELEGIR]:   3,
+  [STATES.GRUPO_CREAR]:    3,
+  [STATES.APELLIDO]:       3,
+  [STATES.SUBMITTING]:     3,
+  [STATES.DONE]:           3,
+};
+
 export default function OnboardingFunnel({ onReady }) {
-  const [bootLoading, setBootLoading] = useState(true);
-  const [legacyMode, setLegacyMode] = useState(false);
-  const [escuelas, setEscuelas] = useState([]);
-
-  const [step, setStep] = useState(0);
-  const [contacto, setContacto] = useState({ email: "", apellido: "", telefono: "" });
-  const [leadId, setLeadId] = useState(null);
-
-  const [escuela, setEscuela] = useState(null);
+  const { state, ctx, escuelas, grupos, bootLoading, legacyMode, actions } = useOnboarding();
   const [escuelaSearch, setEscuelaSearch] = useState("");
-
-  const [grupos, setGrupos] = useState([]);
-  const [grupo, setGrupo] = useState(null);
-
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(null);
   const [legacyNombre, setLegacyNombre] = useState("");
 
+  // Al llegar a DONE persistimos identidad + notificamos al padre. Side-effect
+  // del view, no de la FSM.
   useEffect(() => {
-    let active = true;
-    (async () => {
-      if (!supabase) { active && setLegacyMode(true); active && setBootLoading(false); return; }
-      const { data, error } = await supabase
-        .from("escuelas").select("id, nombre, localidad").order("nombre");
-      if (!active) return;
-      if (error || !data) setLegacyMode(true);
-      else setEscuelas(data);
-      setBootLoading(false);
-    })();
-    return () => { active = false; };
-  }, []);
-
-  useEffect(() => {
-    if (!escuela || !supabase) return;
-    let active = true;
-    supabase.from("grupos").select("id, anio_egreso, grado, estado")
-      .eq("escuela_id", escuela.id).eq("estado", "activo")
-      .order("anio_egreso", { ascending: false })
-      .then(({ data }) => { if (active) setGrupos(data || []); });
-    return () => { active = false; };
-  }, [escuela]);
+    if (state !== STATES.DONE) return;
+    const nombre = `Familia ${ctx.apellido}`;
+    saveIdentity({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id });
+    onReady?.({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id });
+  }, [state, ctx, onReady]);
 
   const escuelasFiltradas = useMemo(() => {
     const q = escuelaSearch.trim().toLowerCase();
@@ -87,143 +72,16 @@ export default function OnboardingFunnel({ onReady }) {
     );
   }, [escuelas, escuelaSearch]);
 
-  const upsertLead = async (extra = {}) => {
-    if (!supabase) return null;
-    const params = {
-      p_id: leadId,
-      p_email: (extra.email ?? contacto.email)?.trim() || null,
-      p_apellido: (extra.apellido ?? contacto.apellido)?.trim() || null,
-      p_telefono: (extra.telefono ?? contacto.telefono)?.trim() || null,
-      p_escuela_id: extra.escuela_id ?? null,
-      p_escuela_libre: extra.escuela_libre ?? null,
-      p_grado_buscado: extra.grado_buscado ?? null,
-      p_anio_egreso: extra.anio_egreso ?? null,
-      p_familia_id: extra.familia_id ?? null,
-    };
-    const { data, error } = await supabase.rpc("lead_upsert", params);
-    if (error) { console.warn("lead_upsert:", error.message); return leadId; }
-    if (!leadId && data) setLeadId(data);
-    return data || leadId;
-  };
-
-  const onContacto = async (values) => {
-    setContacto(values);
-    setError(null);
-    await upsertLead({ email: values.email, apellido: values.apellido, telefono: values.telefono });
-    setStep(2);
-  };
-
-  const onPickEscuela = async (e) => {
-    setEscuela(e);
-    await upsertLead({ escuela_id: e.id, escuela_libre: null });
-    setStep(3);
-  };
-
-  // Cold path: la escuela no estaba en la lista. Antes esto terminaba en
-  // dead-end "te avisamos". Ahora crea la escuela + grupo como pendientes y
-  // continúa al paso de apellido para no bloquear al user.
-  const onColdLead = async (values) => {
-    setError(null);
-    setSubmitting(true);
-    try {
-      const nombre = values.escuela_libre.trim();
-      const grado = values.grado_libre?.trim() || "";
-      const anio = Number(values.anio_egreso) || new Date().getFullYear() + 1;
-
-      await upsertLead({ escuela_libre: nombre, grado_buscado: grado || null, anio_egreso: anio });
-
-      const { data: escId, error: e1 } = await supabase.rpc("escuela_lead_create", { p_nombre: nombre });
-      if (e1) throw new Error(e1.message);
-
-      const { data: grpId, error: e2 } = await supabase.rpc("grupo_lead_create", {
-        p_escuela_id: escId, p_grado: grado, p_anio_egreso: anio,
-      });
-      if (e2) throw new Error(e2.message);
-
-      setEscuela({ id: escId, nombre, _pendiente: true });
-      setGrupo({ id: grpId, grado, anio_egreso: anio, _pendiente: true });
-      setStep(3);
-    } catch (err) {
-      setError(err.message || "No pudimos guardar tu escuela. Probá de nuevo.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  // Si la escuela existe pero el grado no está cargado, lo creamos pendiente
-  // y seguimos. Mismo principio que onColdLead.
-  const onCreateGrupo = async ({ grado, anio_egreso }) => {
-    if (!escuela) return;
-    const grp = (grado || "").trim();
-    const anio = Number(anio_egreso) || new Date().getFullYear() + 1;
-    const { data: grpId, error: e } = await supabase.rpc("grupo_lead_create", {
-      p_escuela_id: escuela.id, p_grado: grp, p_anio_egreso: anio,
-    });
-    if (e) { setError(e.message); return; }
-    setGrupo({ id: grpId, grado: grp, anio_egreso: anio, _pendiente: true });
-  };
-
-  const onFinish = async (values) => {
-    if (!grupo) return;
-    setSubmitting(true); setError(null);
-    const apellido = values.apellido.trim();
-    setContacto((c) => ({ ...c, apellido }));
-
-    const { data: existing } = await supabase
-      .from("familias")
-      .select("id")
-      .eq("grupo_id", grupo.id)
-      .ilike("apellido", apellido)
-      .limit(1);
-
-    let familiaId = existing?.[0]?.id;
-    if (!familiaId) {
-      const { data, error } = await supabase
-        .from("familias")
-        .insert({
-          grupo_id: grupo.id, apellido, email: contacto.email.trim() || null,
-          telefono: contacto.telefono?.trim() || null,
-        })
-        .select("id").single();
-      if (error) { setError(error.message); setSubmitting(false); return; }
-      familiaId = data.id;
-    }
-
-    await upsertLead({
-      escuela_id: escuela.id,
-      grado_buscado: grupo.grado,
-      anio_egreso: grupo.anio_egreso,
-      familia_id: familiaId,
-      apellido,
-    });
-
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      const { error: authErr } = await supabase.auth.signInAnonymously();
-      if (authErr) { setError("Auth: " + authErr.message); setSubmitting(false); return; }
-    }
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("profiles").upsert({
-        user_id: user.id,
-        rol: "familia",
-        nombre: `Familia ${apellido}`,
-        familia_id: familiaId,
-      });
-    }
-
-    const nombre = `Familia ${apellido}`;
-    saveIdentity({ nombre, familiaId, grupoId: grupo.id });
-    setSubmitting(false);
-    onReady({ nombre, familiaId, grupoId: grupo.id });
-  };
-
   const submitLegacy = () => {
     const v = legacyNombre.trim();
     if (!v) return;
     saveIdentity({ nombre: v });
     onReady({ nombre: v, familiaId: null, grupoId: null });
   };
+
+  const step = STEP_OF[state] ?? 0;
+  const submitting = state === STATES.SUBMITTING;
+  const error = ctx.error;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary/20 via-background to-accent/10">
@@ -234,37 +92,44 @@ export default function OnboardingFunnel({ onReady }) {
           <CardShell><p className="text-muted-foreground text-sm text-center">Cargando…</p></CardShell>
         ) : legacyMode ? (
           <LegacyForm value={legacyNombre} onChange={setLegacyNombre} onSubmit={submitLegacy} />
-        ) : step === 0 ? (
-          <Landing onStart={() => setStep(1)} />
+        ) : state === STATES.LANDING ? (
+          <Landing onStart={actions.start} />
         ) : (
           <CardShell>
             <Progress value={(step / 3) * 100} className="mb-6 h-1.5" />
             <Steps current={step} />
-            {step === 1 && (
+            {state === STATES.CONTACTO && (
               <ContactoStep
-                defaultValues={contacto}
+                defaultValues={ctx.contacto}
                 error={error}
-                onSubmit={onContacto}
-                onBack={() => setStep(0)}
+                onSubmit={actions.submitContacto}
+                onBack={actions.back}
               />
             )}
-            {step === 2 && (
+            {(state === STATES.ESCUELA_BUSCAR || state === STATES.ESCUELA_LIBRE) && (
               <EscuelaStep
+                mode={state === STATES.ESCUELA_LIBRE ? "libre" : "buscar"}
                 escuelas={escuelasFiltradas}
                 search={escuelaSearch} setSearch={setEscuelaSearch}
-                onPick={onPickEscuela}
-                onColdLead={onColdLead}
-                onBack={() => setStep(1)}
+                onPick={actions.pickEscuela}
+                onColdLead={actions.submitColdEscuela}
+                onSwitchToLibre={actions.toLibre}
+                onSwitchToBuscar={actions.toBuscar}
+                onBack={actions.back}
               />
             )}
-            {step === 3 && escuela && (
+            {(state === STATES.GRUPO_ELEGIR || state === STATES.GRUPO_CREAR ||
+              state === STATES.APELLIDO || state === STATES.SUBMITTING) && ctx.escuela && (
               <GrupoStep
-                escuela={escuela} grupos={grupos} grupo={grupo} setGrupo={setGrupo}
-                defaultApellido={contacto.apellido}
+                state={state}
+                escuela={ctx.escuela} grupos={grupos.length ? grupos : ctx.grupos}
+                grupo={ctx.grupo}
+                defaultApellido={ctx.contacto.apellido}
                 submitting={submitting} error={error}
-                onCreateGrupo={onCreateGrupo}
-                onFinish={onFinish}
-                onBack={() => { setGrupo(null); setStep(2); }}
+                onPickGrupo={actions.pickGrupo}
+                onCreateGrupo={actions.submitGrupoCrear}
+                onFinish={actions.submitApellido}
+                onBack={actions.back}
               />
             )}
           </CardShell>
@@ -456,8 +321,9 @@ function ContactoStep({ defaultValues, error, onSubmit, onBack }) {
 // ============================================================
 // Step 2: Escuela
 // ============================================================
-function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }) {
-  const [mode, setMode] = useState("buscar");
+function EscuelaStep({ mode = "buscar", escuelas, search, setSearch,
+                       onPick, onColdLead,
+                       onSwitchToLibre, onSwitchToBuscar, onBack }) {
   const form = useForm({
     resolver: zodResolver(escuelaLibreSchema),
     defaultValues: { escuela_libre: "", grado_libre: "", anio_egreso: new Date().getFullYear() + 1 },
@@ -479,7 +345,7 @@ function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }
           </div>
           {escuelas.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              Sin resultados. Probá <Button variant="link" className="px-1 h-auto" onClick={() => setMode("libre")}>tipear tu escuela</Button>.
+              Sin resultados. Probá <Button variant="link" className="px-1 h-auto" onClick={onSwitchToLibre}>tipear tu escuela</Button>.
             </p>
           ) : (
             <ul className="space-y-2 max-h-72 overflow-auto">
@@ -496,7 +362,7 @@ function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }
               ))}
             </ul>
           )}
-          <Button variant="link" size="sm" onClick={() => setMode("libre")} className="mt-4 mx-auto block text-muted-foreground hover:text-foreground">
+          <Button variant="link" size="sm" onClick={onSwitchToLibre} className="mt-4 mx-auto block text-muted-foreground hover:text-foreground">
             ¿No está tu escuela?
           </Button>
         </>
@@ -538,7 +404,7 @@ function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }
             <Button type="submit" className="w-full font-bold" disabled={form.formState.isSubmitting}>
               {form.formState.isSubmitting ? "Guardando…" : <>Continuar <ArrowRight className="w-4 h-4" /></>}
             </Button>
-            <Button variant="link" size="sm" type="button" onClick={() => setMode("buscar")} className="mx-auto block text-muted-foreground hover:text-foreground">
+            <Button variant="link" size="sm" type="button" onClick={onSwitchToBuscar} className="mx-auto block text-muted-foreground hover:text-foreground">
               ← volver a buscar
             </Button>
           </form>
@@ -552,7 +418,8 @@ function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }
 // ============================================================
 // Step 3: Grupo + apellido
 // ============================================================
-function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitting, error, onCreateGrupo, onFinish, onBack }) {
+function GrupoStep({ state, escuela, grupos, grupo, defaultApellido, submitting, error,
+                     onPickGrupo, onCreateGrupo, onFinish, onBack }) {
   const form = useForm({
     resolver: zodResolver(apellidoSchema),
     defaultValues: { apellido: defaultApellido || "" },
@@ -561,11 +428,12 @@ function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitti
     defaultValues: { grado: "", anio_egreso: new Date().getFullYear() + 1 },
   });
 
-  if (!grupo) {
+  const showGrupoPicker = state === STATES.GRUPO_ELEGIR || state === STATES.GRUPO_CREAR;
+  if (showGrupoPicker) {
     return (
       <>
         <StepHeader icon={Users} title="¿Qué grado?" subtitle={escuela.nombre} />
-        {grupos.length === 0 ? (
+        {state === STATES.GRUPO_CREAR || grupos.length === 0 ? (
           <Form {...grupoForm}>
             <form onSubmit={grupoForm.handleSubmit(onCreateGrupo)} className="space-y-3">
               <p className="text-[13px] text-foreground bg-accent/15 border border-accent/40 rounded-lg px-3 py-2">
@@ -595,7 +463,7 @@ function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitti
             {grupos.map((g) => (
               <li key={g.id}>
                 <button
-                  onClick={() => setGrupo(g)}
+                  onClick={() => onPickGrupo(g)}
                   className="w-full text-left bg-muted hover:bg-secondary/30 border rounded-xl px-4 py-3 flex items-center justify-between transition-colors"
                 >
                   <span className="font-semibold text-foreground">{g.grado || "—"}</span>
@@ -630,7 +498,7 @@ function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitti
           </Button>
         </form>
       </Form>
-      <BackBtn onClick={() => setGrupo(null)} />
+      <BackBtn onClick={onBack} />
     </>
   );
 }
