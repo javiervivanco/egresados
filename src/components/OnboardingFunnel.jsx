@@ -53,7 +53,6 @@ export default function OnboardingFunnel({ onReady }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [legacyNombre, setLegacyNombre] = useState("");
-  const [coldDone, setColdDone] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -120,14 +119,48 @@ export default function OnboardingFunnel({ onReady }) {
     setStep(3);
   };
 
+  // Cold path: la escuela no estaba en la lista. Antes esto terminaba en
+  // dead-end "te avisamos". Ahora crea la escuela + grupo como pendientes y
+  // continúa al paso de apellido para no bloquear al user.
   const onColdLead = async (values) => {
     setError(null);
-    await upsertLead({
-      escuela_libre: values.escuela_libre.trim(),
-      grado_buscado: values.grado_libre?.trim() || null,
-      anio_egreso: values.anio_egreso || null,
+    setSubmitting(true);
+    try {
+      const nombre = values.escuela_libre.trim();
+      const grado = values.grado_libre?.trim() || "";
+      const anio = Number(values.anio_egreso) || new Date().getFullYear() + 1;
+
+      await upsertLead({ escuela_libre: nombre, grado_buscado: grado || null, anio_egreso: anio });
+
+      const { data: escId, error: e1 } = await supabase.rpc("escuela_lead_create", { p_nombre: nombre });
+      if (e1) throw new Error(e1.message);
+
+      const { data: grpId, error: e2 } = await supabase.rpc("grupo_lead_create", {
+        p_escuela_id: escId, p_grado: grado, p_anio_egreso: anio,
+      });
+      if (e2) throw new Error(e2.message);
+
+      setEscuela({ id: escId, nombre, _pendiente: true });
+      setGrupo({ id: grpId, grado, anio_egreso: anio, _pendiente: true });
+      setStep(3);
+    } catch (err) {
+      setError(err.message || "No pudimos guardar tu escuela. Probá de nuevo.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Si la escuela existe pero el grado no está cargado, lo creamos pendiente
+  // y seguimos. Mismo principio que onColdLead.
+  const onCreateGrupo = async ({ grado, anio_egreso }) => {
+    if (!escuela) return;
+    const grp = (grado || "").trim();
+    const anio = Number(anio_egreso) || new Date().getFullYear() + 1;
+    const { data: grpId, error: e } = await supabase.rpc("grupo_lead_create", {
+      p_escuela_id: escuela.id, p_grado: grp, p_anio_egreso: anio,
     });
-    setColdDone(true);
+    if (e) { setError(e.message); return; }
+    setGrupo({ id: grpId, grado: grp, anio_egreso: anio, _pendiente: true });
   };
 
   const onFinish = async (values) => {
@@ -203,8 +236,6 @@ export default function OnboardingFunnel({ onReady }) {
           <LegacyForm value={legacyNombre} onChange={setLegacyNombre} onSubmit={submitLegacy} />
         ) : step === 0 ? (
           <Landing onStart={() => setStep(1)} />
-        ) : coldDone ? (
-          <ColdLeadDone email={contacto.email} />
         ) : (
           <CardShell>
             <Progress value={(step / 3) * 100} className="mb-6 h-1.5" />
@@ -231,6 +262,7 @@ export default function OnboardingFunnel({ onReady }) {
                 escuela={escuela} grupos={grupos} grupo={grupo} setGrupo={setGrupo}
                 defaultApellido={contacto.apellido}
                 submitting={submitting} error={error}
+                onCreateGrupo={onCreateGrupo}
                 onFinish={onFinish}
                 onBack={() => { setGrupo(null); setStep(2); }}
               />
@@ -472,7 +504,7 @@ function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onColdLead)} className="space-y-3">
             <p className="text-[13px] text-foreground bg-accent/15 border border-accent/40 rounded-lg px-3 py-2">
-              Si tu escuela todavía no está en la plataforma, dejános los datos y te avisamos por mail cuando la sumemos.
+              No la encontramos. Tipeala y la sumamos automáticamente para que puedas seguir.
             </p>
             <FormField
               control={form.control} name="escuela_libre"
@@ -504,7 +536,7 @@ function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }
               />
             </div>
             <Button type="submit" className="w-full font-bold" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Guardando…" : "Avisame cuando esté"}
+              {form.formState.isSubmitting ? "Guardando…" : <>Continuar <ArrowRight className="w-4 h-4" /></>}
             </Button>
             <Button variant="link" size="sm" type="button" onClick={() => setMode("buscar")} className="mx-auto block text-muted-foreground hover:text-foreground">
               ← volver a buscar
@@ -520,10 +552,13 @@ function EscuelaStep({ escuelas, search, setSearch, onPick, onColdLead, onBack }
 // ============================================================
 // Step 3: Grupo + apellido
 // ============================================================
-function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitting, error, onFinish, onBack }) {
+function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitting, error, onCreateGrupo, onFinish, onBack }) {
   const form = useForm({
     resolver: zodResolver(apellidoSchema),
     defaultValues: { apellido: defaultApellido || "" },
+  });
+  const grupoForm = useForm({
+    defaultValues: { grado: "", anio_egreso: new Date().getFullYear() + 1 },
   });
 
   if (!grupo) {
@@ -531,9 +566,30 @@ function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitti
       <>
         <StepHeader icon={Users} title="¿Qué grado?" subtitle={escuela.nombre} />
         {grupos.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">
-            Esta escuela todavía no tiene grupos cargados. Estamos sumando — te avisamos por mail apenas esté tu grado.
-          </p>
+          <Form {...grupoForm}>
+            <form onSubmit={grupoForm.handleSubmit(onCreateGrupo)} className="space-y-3">
+              <p className="text-[13px] text-foreground bg-accent/15 border border-accent/40 rounded-lg px-3 py-2">
+                No hay grados cargados para esta escuela. Decinos el tuyo y lo agregamos al toque.
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                <FormField
+                  control={grupoForm.control} name="grado"
+                  render={({ field }) => (
+                    <FormItem><FormControl><Input placeholder="Grado (Ej: 6to A)" autoFocus {...field} /></FormControl></FormItem>
+                  )}
+                />
+                <FormField
+                  control={grupoForm.control} name="anio_egreso"
+                  render={({ field }) => (
+                    <FormItem><FormControl><Input type="number" placeholder="Año egreso" {...field} /></FormControl></FormItem>
+                  )}
+                />
+              </div>
+              <Button type="submit" className="w-full font-bold" disabled={grupoForm.formState.isSubmitting}>
+                {grupoForm.formState.isSubmitting ? "Guardando…" : <>Continuar <ArrowRight className="w-4 h-4" /></>}
+              </Button>
+            </form>
+          </Form>
         ) : (
           <ul className="space-y-2 max-h-72 overflow-auto">
             {grupos.map((g) => (
@@ -576,29 +632,6 @@ function GrupoStep({ escuela, grupos, grupo, setGrupo, defaultApellido, submitti
       </Form>
       <BackBtn onClick={() => setGrupo(null)} />
     </>
-  );
-}
-
-// ============================================================
-// Cold lead done
-// ============================================================
-function ColdLeadDone({ email }) {
-  return (
-    <CardShell>
-      <div className="text-center">
-        <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-4">
-          <Check className="w-7 h-7 text-primary-foreground" />
-        </div>
-        <CardTitle className="font-sans italic text-2xl mb-2">¡Listo!</CardTitle>
-        <CardDescription className="mb-1">Anotamos tu interés.</CardDescription>
-        <p className="text-muted-foreground text-xs mb-5">
-          Apenas tengamos tu escuela cargada te escribimos a <strong>{email}</strong>.
-        </p>
-        <p className="text-muted-foreground/70 text-[11px]">
-          Mientras tanto podés seguir navegando como invitado para mirar las propuestas existentes.
-        </p>
-      </div>
-    </CardShell>
   );
 }
 
