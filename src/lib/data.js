@@ -44,22 +44,56 @@ function dbRowToLegacy(row, destinoNombre, empresaNombre) {
   };
 }
 
-// Devuelve { rows, source: "db" | "json" }
-export async function loadPlanes() {
-  if (!supabase) return { rows: RAW_LEGACY, source: "json" };
+// Devuelve { rows, source, filteredByCiudad }
+//   source: "db" | "json"
+//   filteredByCiudad: true si la query se redujo a empresas que operan
+//                     desde ciudadId. Útil para mostrar el copy correcto
+//                     cuando no hay match.
+//
+// Si se pasa ciudadId, sólo devuelve planes de empresas que tengan esa
+// ciudad listada en `empresas_origenes`. Sin ciudadId (admin / preview)
+// devuelve el catálogo completo.
+export async function loadPlanes({ ciudadId = null } = {}) {
+  if (!supabase) return { rows: RAW_LEGACY, source: "json", filteredByCiudad: false };
 
-  // Embed: planes_viaje → destinos → empresas
-  const { data, error } = await supabase
+  let empresaIds = null;
+  if (ciudadId) {
+    const { data: orig, error: errOrig } = await supabase
+      .from("empresas_origenes")
+      .select("empresa_id")
+      .eq("ciudad_id", ciudadId);
+    if (!errOrig && orig) {
+      empresaIds = orig.map((r) => r.empresa_id);
+      if (empresaIds.length === 0) {
+        // Sin empresas para esa ciudad → resultado vacío explícito (no
+        // caemos al fallback JSON que mostraría irrelevantes).
+        return { rows: [], source: "db", filteredByCiudad: true };
+      }
+    }
+  }
+
+  let q = supabase
     .from("planes_viaje")
     .select("*, destinos!inner(id, nombre, empresa_id, empresas!inner(nombre))")
     .eq("activo", true);
 
-  if (error || !data || data.length === 0) {
-    return { rows: RAW_LEGACY, source: "json" };
+  if (empresaIds && empresaIds.length > 0) {
+    q = q.in("destinos.empresa_id", empresaIds);
+  }
+
+  const { data, error } = await q;
+
+  if (error || !data) {
+    return { rows: RAW_LEGACY, source: "json", filteredByCiudad: false };
+  }
+  if (data.length === 0) {
+    // Sin filtro y vacío → JSON fallback. Con filtro y vacío → vacío real.
+    if (ciudadId) return { rows: [], source: "db", filteredByCiudad: true };
+    return { rows: RAW_LEGACY, source: "json", filteredByCiudad: false };
   }
 
   const rows = data.map((p) =>
     dbRowToLegacy(p, p.destinos.nombre, p.destinos.empresas.nombre)
   );
-  return { rows, source: "db" };
+  return { rows, source: "db", filteredByCiudad: !!ciudadId };
 }

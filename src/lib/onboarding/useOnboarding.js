@@ -19,19 +19,23 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
   const [machine, dispatch] = useReducer(reducer, undefined, initialState);
   const leadRef = useRef(leadIdInitial);
   const [escuelas, setEscuelas] = useState([]);
+  const [ciudades, setCiudades] = useState([]);
   const [grupos, setGrupos] = useState([]);
   const [bootLoading, setBootLoading] = useState(true);
   const [legacyMode, setLegacyMode] = useState(false);
 
-  // Bootstrap: cargar catálogo de escuelas; si no hay (DB sin seed) → modo legacy.
+  // Bootstrap: cargar escuelas + ciudades. Si no hay escuelas pero sí
+  // ciudades, el flow nuevo igual sirve (cold path con ciudad explícita).
+  // Solo cae a legacyMode si supabase no responde en absoluto.
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const list = await fx.fetchEscuelas();
+        const [esc, ciu] = await Promise.all([fx.fetchEscuelas(), fx.fetchCiudades()]);
         if (cancelled) return;
-        setEscuelas(list);
-        setLegacyMode(list.length === 0);
+        setEscuelas(esc);
+        setCiudades(ciu);
+        setLegacyMode(ciu.length === 0); // sin ciudades el matching no opera
       } catch {
         if (!cancelled) setLegacyMode(true);
       } finally {
@@ -73,25 +77,30 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
     const lista = await fx.fetchGruposByEscuela(escuela.id);
     setGrupos(lista);
     leadRef.current = await fx.upsertLead({ id: leadRef.current, email: machine.ctx.contacto.email, escuela_id: escuela.id });
-    track("onboarding_escuela_pick", { escuela_id: escuela.id, grupos_cargados: lista.length });
+    track("onboarding_escuela_pick", {
+      escuela_id: escuela.id,
+      ciudad_id: escuela.ciudad_id || null,
+      grupos_cargados: lista.length,
+    });
     dispatch({ type: EVENTS.PICK_ESCUELA, payload: { escuela, grupos: lista } });
   }, [machine.ctx.contacto.email]);
 
-  const submitColdEscuela = useCallback(async ({ escuela_libre, grado_libre, anio_egreso }) => {
+  const submitColdEscuela = useCallback(async ({ escuela_libre, grado_libre, anio_egreso, ciudad_id }) => {
     const nombre = (escuela_libre || "").trim();
     const grado = (grado_libre || "").trim();
     const anio = Number(anio_egreso) || new Date().getFullYear() + 1;
+    const ciudadId = ciudad_id ? Number(ciudad_id) : null;
     leadRef.current = await fx.upsertLead({
       id: leadRef.current, email: machine.ctx.contacto.email,
       escuela_libre: nombre, grado_buscado: grado || null, anio_egreso: anio,
     });
-    const escuelaId = await fx.createEscuelaPendiente({ nombre });
+    const escuelaId = await fx.createEscuelaPendiente({ nombre, ciudadId });
     const grupoId = await fx.createGrupoPendiente({ escuela_id: escuelaId, grado, anio_egreso: anio });
-    track("onboarding_escuela_cold_submit", { escuela_id: escuelaId, grupo_id: grupoId });
+    track("onboarding_escuela_cold_submit", { escuela_id: escuelaId, grupo_id: grupoId, ciudad_id: ciudadId });
     dispatch({
       type: EVENTS.SUBMIT_COLD,
       payload: {
-        escuela: { id: escuelaId, nombre, _pendiente: true },
+        escuela: { id: escuelaId, nombre, ciudad_id: ciudadId, _pendiente: true },
         grupo:   { id: grupoId, grado, anio_egreso: anio, _pendiente: true },
       },
     });
@@ -148,7 +157,7 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
   return {
     state: machine.state,
     ctx: machine.ctx,
-    escuelas, grupos,
+    escuelas, ciudades, grupos,
     bootLoading, legacyMode,
     actions,
     isTerminal: machine.state === STATES.DONE,

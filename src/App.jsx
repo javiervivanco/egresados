@@ -1384,15 +1384,17 @@ export default function App() {
   // cae a los JSON. rawRows queda con shape legacy (PascalCase + DESTINO_ALIAS).
   const [rawRows, setRawRows] = useState([]);
   const [dataSource, setDataSource] = useState(null); // "db" | "json" | null (loading)
+  const [filteredByCiudad, setFilteredByCiudad] = useState(false);
   useEffect(() => {
     let active = true;
-    loadPlanes().then(({ rows, source }) => {
+    loadPlanes({ ciudadId: identity.ciudadId || null }).then(({ rows, source, filteredByCiudad }) => {
       if (!active) return;
       setRawRows(rows.map((r) => ({ ...r, Destino: normalizeDestino(r.Destino) })));
       setDataSource(source);
+      setFilteredByCiudad(!!filteredByCiudad);
     });
     return () => { active = false; };
-  }, []);
+  }, [identity.ciudadId]);
 
   // Fetch total votos on mount
   useEffect(() => {
@@ -1733,6 +1735,21 @@ export default function App() {
             </DialogContent>
           </Dialog>
         </div>
+
+        {/* Banner explicito de filtrado por ciudad (cuando aplica) */}
+        {filteredByCiudad && sortedByPrice.length === 0 && (
+          <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 mb-6 text-sm">
+            <p className="font-semibold text-foreground">Todavía no hay empresas operando desde tu ciudad.</p>
+            <p className="text-muted-foreground text-[13px] mt-1">
+              Estamos sumando empresas. Apenas haya una propuesta para tu ciudad te avisamos por mail.
+            </p>
+          </div>
+        )}
+        {filteredByCiudad && sortedByPrice.length > 0 && (
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-3">
+            Mostrando empresas que operan desde tu ciudad
+          </p>
+        )}
 
         {/* GRID — siempre visible, según tab */}
         {tab === "precio" && (

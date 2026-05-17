@@ -32,6 +32,7 @@ const apellidoSchema = z.object({
 
 const escuelaLibreSchema = z.object({
   escuela_libre: z.string().min(2, "Tipeá el nombre de tu escuela"),
+  ciudad_id: z.coerce.number().int().min(1, "Elegí la ciudad"),
   grado_libre: z.string().optional(),
   anio_egreso: z.coerce.number().int().min(2024).max(2050).optional(),
 });
@@ -50,7 +51,7 @@ const STEP_OF = {
 };
 
 export default function OnboardingFunnel({ onReady }) {
-  const { state, ctx, escuelas, grupos, bootLoading, legacyMode, actions } = useOnboarding();
+  const { state, ctx, escuelas, ciudades, grupos, bootLoading, legacyMode, actions } = useOnboarding();
   const [escuelaSearch, setEscuelaSearch] = useState("");
   const [legacyNombre, setLegacyNombre] = useState("");
 
@@ -59,8 +60,9 @@ export default function OnboardingFunnel({ onReady }) {
   useEffect(() => {
     if (state !== STATES.DONE) return;
     const nombre = `Familia ${ctx.apellido}`;
-    saveIdentity({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id });
-    onReady?.({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id });
+    const ciudadId = ctx.escuela?.ciudad_id || ctx.escuela?.ciudades?.id || null;
+    saveIdentity({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id, ciudadId });
+    onReady?.({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id, ciudadId });
   }, [state, ctx, onReady]);
 
   const escuelasFiltradas = useMemo(() => {
@@ -110,6 +112,7 @@ export default function OnboardingFunnel({ onReady }) {
               <EscuelaStep
                 mode={state === STATES.ESCUELA_LIBRE ? "libre" : "buscar"}
                 escuelas={escuelasFiltradas}
+                ciudades={ciudades}
                 search={escuelaSearch} setSearch={setEscuelaSearch}
                 onPick={actions.pickEscuela}
                 onColdLead={actions.submitColdEscuela}
@@ -321,12 +324,12 @@ function ContactoStep({ defaultValues, error, onSubmit, onBack }) {
 // ============================================================
 // Step 2: Escuela
 // ============================================================
-function EscuelaStep({ mode = "buscar", escuelas, search, setSearch,
+function EscuelaStep({ mode = "buscar", escuelas, ciudades = [], search, setSearch,
                        onPick, onColdLead,
                        onSwitchToLibre, onSwitchToBuscar, onBack }) {
   const form = useForm({
     resolver: zodResolver(escuelaLibreSchema),
-    defaultValues: { escuela_libre: "", grado_libre: "", anio_egreso: new Date().getFullYear() + 1 },
+    defaultValues: { escuela_libre: "", ciudad_id: "", grado_libre: "", anio_egreso: new Date().getFullYear() + 1 },
   });
 
   return (
@@ -378,6 +381,23 @@ function EscuelaStep({ mode = "buscar", escuelas, search, setSearch,
                 <FormItem>
                   <FormControl>
                     <Input placeholder="Nombre de la escuela" autoFocus {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control} name="ciudad_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <select {...field}
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+                      <option value="">Ciudad de tu escuela…</option>
+                      {ciudades.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nombre}{c.provincia ? ` · ${c.provincia}` : ""}</option>
+                      ))}
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

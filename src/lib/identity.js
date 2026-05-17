@@ -14,25 +14,29 @@
 const KEY_LEGACY = "egresados_familia";
 const KEY_FAMILIA = "egresados_familia_id";
 const KEY_GRUPO = "egresados_grupo_id";
+const KEY_CIUDAD = "egresados_ciudad_id";
 
 export function loadIdentity() {
   return {
     nombre:    localStorage.getItem(KEY_LEGACY) || "",
     familiaId: numOrNull(localStorage.getItem(KEY_FAMILIA)),
     grupoId:   numOrNull(localStorage.getItem(KEY_GRUPO)),
+    ciudadId:  numOrNull(localStorage.getItem(KEY_CIUDAD)),
   };
 }
 
-export function saveIdentity({ nombre, familiaId, grupoId }) {
+export function saveIdentity({ nombre, familiaId, grupoId, ciudadId }) {
   if (nombre != null)    localStorage.setItem(KEY_LEGACY, nombre);
   if (familiaId != null) localStorage.setItem(KEY_FAMILIA, String(familiaId));
   if (grupoId != null)   localStorage.setItem(KEY_GRUPO, String(grupoId));
+  if (ciudadId != null)  localStorage.setItem(KEY_CIUDAD, String(ciudadId));
 }
 
 export function clearIdentity() {
   localStorage.removeItem(KEY_LEGACY);
   localStorage.removeItem(KEY_FAMILIA);
   localStorage.removeItem(KEY_GRUPO);
+  localStorage.removeItem(KEY_CIUDAD);
 }
 
 function numOrNull(v) {

@@ -13,8 +13,18 @@ export async function fetchEscuelas() {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from("escuelas")
-    .select("id, nombre, localidad")
+    .select("id, nombre, localidad, ciudad_id, ciudades(id, nombre, provincia)")
     .order("nombre");
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchCiudades() {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from("ciudades")
+    .select("id, nombre, provincia, slug")
+    .order("provincia").order("nombre");
   if (error) throw error;
   return data || [];
 }
@@ -35,9 +45,10 @@ export async function fetchGruposByEscuela(escuelaId) {
 // Auto-creación de escuela/grupo pendientes (security definer RPCs)
 // ---------------------------------------------------------------
 
-export async function createEscuelaPendiente({ nombre, localidad = null, provincia = null }) {
+export async function createEscuelaPendiente({ nombre, localidad = null, provincia = null, ciudadId = null }) {
   const { data, error } = await supabase.rpc("escuela_lead_create", {
     p_nombre: nombre, p_localidad: localidad, p_provincia: provincia,
+    p_ciudad_id: ciudadId,
   });
   if (error) throw error;
   return data;
