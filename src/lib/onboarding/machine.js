@@ -122,7 +122,10 @@ const T = {
     }),
 
   [k(STATES.SUBMITTING, EVENTS.SUBMIT_OK)]:
-    (ctx, p) => ({ state: STATES.DONE, ctx: { ...ctx, familiaId: p.familiaId } }),
+    (ctx, p) => ({
+      state: STATES.DONE,
+      ctx: { ...ctx, familiaId: p.familiaId, esNuevaFamilia: !!p.esNuevaFamilia },
+    }),
   [k(STATES.SUBMITTING, EVENTS.SUBMIT_FAIL)]:
     (ctx, p) => ({ state: STATES.APELLIDO, ctx: { ...ctx, error: p?.error || "Falló el alta" } }),
 };

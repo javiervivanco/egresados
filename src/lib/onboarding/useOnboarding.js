@@ -148,10 +148,16 @@ export function useOnboarding({ leadIdInitial = null, invitacionToken = null } =
   const submitApellido = useCallback(async ({ apellido }) => {
     dispatch({ type: EVENTS.SUBMIT_APELLIDO, payload: { apellido } });
     try {
-      const familiaId = await fx.findOrCreateFamilia({
+      // RPC familia_unirse: crea familia o suma miembro a la existente.
+      const r = await fx.unirseAFamilia({
         grupo_id: machine.ctx.grupo.id, apellido,
-        email: machine.ctx.contacto.email, telefono: machine.ctx.contacto.telefono,
+        email: machine.ctx.contacto.email,
+        telefono: machine.ctx.contacto.telefono,
+        nombre: machine.ctx.contacto.nombre || null,
       });
+      const familiaId = r?.familia_id;
+      if (!familiaId) throw new Error("No pudimos crear/unirte a la familia");
+
       await fx.upsertLead({
         id: leadRef.current, email: machine.ctx.contacto.email,
         escuela_id: machine.ctx.escuela._pendiente ? null : machine.ctx.escuela.id,
@@ -161,8 +167,14 @@ export function useOnboarding({ leadIdInitial = null, invitacionToken = null } =
         familia_id: familiaId, apellido,
       });
       await fx.signInAnonAndLinkProfile({ familia_id: familiaId });
-      track("onboarding_complete", { familia_id: familiaId, grupo_id: machine.ctx.grupo.id });
-      dispatch({ type: EVENTS.SUBMIT_OK, payload: { familiaId } });
+      track("onboarding_complete", {
+        familia_id: familiaId, grupo_id: machine.ctx.grupo.id,
+        es_nueva_familia: !!r?.es_nueva_familia,
+      });
+      dispatch({
+        type: EVENTS.SUBMIT_OK,
+        payload: { familiaId, esNuevaFamilia: !!r?.es_nueva_familia },
+      });
     } catch (err) {
       track("onboarding_fail", { error: err.message });
       dispatch({ type: EVENTS.SUBMIT_FAIL, payload: { error: err.message } });

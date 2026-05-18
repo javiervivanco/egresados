@@ -101,18 +101,34 @@ export async function upsertLead({ id = null, email, apellido = null, telefono =
 // Familia + auth anónima
 // ---------------------------------------------------------------
 
-export async function findOrCreateFamilia({ grupo_id, apellido, email, telefono }) {
-  const { data: existing } = await supabase
-    .from("familias").select("id")
-    .eq("grupo_id", grupo_id).ilike("apellido", apellido).limit(1);
-  if (existing?.[0]?.id) return existing[0].id;
-
-  const { data, error } = await supabase
-    .from("familias")
-    .insert({ grupo_id, apellido, email: email || null, telefono: telefono || null })
-    .select("id").single();
+// Une al usuario actual a la familia (grupo + apellido). Si la familia ya
+// existe, agrega un miembro nuevo o reusa si el email ya está. Devuelve
+// { familia_id, miembro_id, es_principal, es_nueva_familia }. El frontend
+// usa estas flags para mostrar "te sumamos a familia García" vs "creamos
+// tu familia".
+export async function unirseAFamilia({ grupo_id, apellido, email, telefono, nombre }) {
+  const { data, error } = await supabase.rpc("familia_unirse", {
+    p_grupo_id: grupo_id, p_apellido: apellido, p_email: email,
+    p_telefono: telefono || null, p_nombre: nombre || null,
+  });
   if (error) throw error;
-  return data.id;
+  return data; // jsonb
+}
+
+// Lookup previo al SUBMIT_APELLIDO: si la familia ya existe, mostrar copy
+// "te sumamos a familia X (ya hay N personas)". No crea nada.
+export async function lookupFamilia({ grupo_id, apellido }) {
+  const { data, error } = await supabase.rpc("familia_lookup", {
+    p_grupo_id: grupo_id, p_apellido: apellido,
+  });
+  if (error) return { existe: false };
+  return data || { existe: false };
+}
+
+// Alias backward-compat para no romper otros callers (si los hubiera).
+export async function findOrCreateFamilia(args) {
+  const res = await unirseAFamilia(args);
+  return res?.familia_id;
 }
 
 export async function signInAnonAndLinkProfile({ familia_id }) {

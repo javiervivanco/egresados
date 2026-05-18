@@ -153,6 +153,8 @@ export default function OnboardingFunnel({ onReady, invitacionToken = null }) {
                 grupoId={ctx.grupo.id}
                 escuelaNombre={ctx.escuela?.nombre || ""}
                 grado={ctx.grupo?.grado || ""}
+                apellido={ctx.apellido}
+                esNuevaFamilia={!!ctx.esNuevaFamilia}
                 onContinue={() => setInvitacionVista(true)}
               />
             )}
@@ -562,8 +564,9 @@ function GrupoStep({ state, escuela, grupos, grupo, defaultApellido, submitting,
 // Invitación: post-DONE. Pantalla viral: la primera familia comparte
 // el link de su grupo. Token vive 90 días y rota en `grupos`.
 // ============================================================
-function InvitacionStep({ grupoId, escuelaNombre, grado, onContinue }) {
+function InvitacionStep({ grupoId, escuelaNombre, grado, apellido, esNuevaFamilia = true, onContinue }) {
   const [token, setToken] = useState(null);
+  const [miembros, setMiembros] = useState(null);
   const [copiado, setCopiado] = useState(false);
 
   useEffect(() => {
@@ -576,6 +579,15 @@ function InvitacionStep({ grupoId, escuelaNombre, grado, onContinue }) {
       .then(({ data }) => { if (!cancelled) setToken(data?.invitacion_token || null); });
     return () => { cancelled = true; };
   }, [grupoId]);
+
+  // Cuántos miembros tiene mi familia ahora (yo + cualquiera previo).
+  useEffect(() => {
+    if (esNuevaFamilia || !supabase || !apellido || !grupoId) return;
+    let cancelled = false;
+    supabase.rpc("familia_lookup", { p_grupo_id: grupoId, p_apellido: apellido })
+      .then(({ data }) => { if (!cancelled) setMiembros(data?.miembros ?? null); });
+    return () => { cancelled = true; };
+  }, [esNuevaFamilia, grupoId, apellido]);
 
   const url = token ? `${window.location.origin}/?inv=${token}` : "";
   const mensaje = `¡Hola! Me sumé a la plataforma para comparar viajes de egresados de ${escuelaNombre}${grado ? ` (${grado})` : ""}. Sumate y elegimos juntos: ${url}`;
@@ -595,9 +607,15 @@ function InvitacionStep({ grupoId, escuelaNombre, grado, onContinue }) {
         <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
           <Check className="w-7 h-7 text-primary-foreground" />
         </div>
-        <CardTitle className="font-sans italic text-2xl mb-1">¡Listo, ya estás dentro!</CardTitle>
+        <CardTitle className="font-sans italic text-2xl mb-1">
+          {esNuevaFamilia ? "¡Listo, ya estás dentro!" : `Te sumaste a Familia ${apellido}`}
+        </CardTitle>
         <CardDescription>
-          Sumá a las otras familias de tu grado para comparar precios juntos.
+          {esNuevaFamilia
+            ? "Sumá a las otras familias de tu grado para comparar precios juntos."
+            : miembros && miembros > 1
+              ? `Ya hay ${miembros} personas registradas en tu familia. Las votaciones se cuentan como un voto colectivo de Familia ${apellido}.`
+              : "Tu registro queda asociado a tu familia. Compartí con otras familias del grado."}
         </CardDescription>
       </div>
 

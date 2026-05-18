@@ -68,6 +68,22 @@ describe("FSM onboarding · transiciones puntuales", () => {
     expect(s.ctx.familiaId).toBe(42);
   });
 
+  it("SUBMIT_OK propaga esNuevaFamilia al ctx (UX condicional en InvitacionStep)", () => {
+    const nueva = transition(
+      { state: STATES.SUBMITTING, ctx: initialState().ctx },
+      EVENTS.SUBMIT_OK,
+      { familiaId: 1, esNuevaFamilia: true }
+    );
+    expect(nueva.ctx.esNuevaFamilia).toBe(true);
+
+    const reusada = transition(
+      { state: STATES.SUBMITTING, ctx: initialState().ctx },
+      EVENTS.SUBMIT_OK,
+      { familiaId: 1, esNuevaFamilia: false }
+    );
+    expect(reusada.ctx.esNuevaFamilia).toBe(false);
+  });
+
   it("SUBMITTING → APELLIDO en SUBMIT_FAIL (recuperable)", () => {
     const s = { state: STATES.SUBMITTING, ctx: initialState().ctx };
     const next = transition(s, EVENTS.SUBMIT_FAIL, { error: "boom" });
