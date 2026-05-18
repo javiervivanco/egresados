@@ -24,7 +24,6 @@ import { Badge } from "@/components/ui/badge";
 
 const contactoSchema = z.object({
   email: z.string().min(1, "Email requerido").email("Email inválido"),
-  apellido: z.string().optional(),
   telefono: z.string()
     .min(8, "Necesitamos tu teléfono para coordinar con tu grupo")
     .regex(/^[0-9+\s\-()]{8,}$/, "Teléfono inválido"),
@@ -322,14 +321,6 @@ function ContactoStep({ defaultValues, error, onSubmit, onBack }) {
                   <Input type="email" placeholder="Email" autoFocus {...field} />
                 </FormControl>
                 <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control} name="apellido"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl><Input placeholder="Apellido (opcional)" {...field} /></FormControl>
               </FormItem>
             )}
           />
