@@ -10,6 +10,8 @@ import { supabaseClient } from "../lib/supabaseClient";
 const PERMS = {
   super_admin: {
     "*": { list: true, show: true, create: true, edit: true, delete: true },
+    // Dashboard read-only (views agregadas)
+    dashboard_funnel: { list: true, show: false, create: false, edit: false, delete: false },
     // Crear users via CLI (make admin-create-user), no desde UI.
     profiles: { list: true, show: true, create: false, edit: true, delete: false },
     // Votos son agregados readonly.

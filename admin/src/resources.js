@@ -111,6 +111,11 @@ export const resources = [
   // ─── Comercio ─────────────────────────────────────────────────
   { name: "comercio", meta: { label: "Comercio" } },
   {
+    name: "dashboard_funnel",
+    list: "/dashboard-funnel",
+    meta: { label: "Dashboard funnel", parent: "comercio", icon: "📈" },
+  },
+  {
     name: "ventas",
     list: "/ventas",
     create: "/ventas/create",

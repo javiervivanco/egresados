@@ -54,6 +54,7 @@ import { VentasList } from "./pages/ventas/list";
 import { VentasCreate } from "./pages/ventas/create";
 import { VentasEdit } from "./pages/ventas/edit";
 import { VentasDashboard } from "./pages/ventas/dashboard";
+import { DashboardFunnel } from "./pages/dashboard/funnel";
 import { CorreccionesList } from "./pages/correcciones/list";
 import { LeadsList } from "./pages/leads/list";
 import { LeadsShow } from "./pages/leads/show";
@@ -152,6 +153,7 @@ export default function App() {
                 <Route path="edit/:id" element={<VentasEdit />} />
               </Route>
               <Route path="/ventas-dashboard" element={<VentasDashboard />} />
+              <Route path="/dashboard-funnel" element={<DashboardFunnel />} />
               <Route path="/correcciones" element={<CorreccionesList />} />
               <Route path="/leads">
                 <Route index element={<LeadsList />} />
