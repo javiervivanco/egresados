@@ -76,17 +76,9 @@ export function buildPayload({ evento, email, ctx = {}, utm = {}, sessionId }) {
 // ---------------------------------------------------------------
 
 // Estado en módulo: email del lead actual (lo seteamos cuando capturamos
-// contacto) y supabase client lazy-imported para que los tests no toquen la
-// red.
+// contacto).
+import { supabase } from "../../supabase";
 let _email = null;
-let _supabase = null;
-
-async function getSupabase() {
-  if (_supabase) return _supabase;
-  const mod = await import("../../supabase");
-  _supabase = mod.supabase;
-  return _supabase;
-}
 
 // El view llama esto en cuanto el lead da su email (ContactoStep). A partir
 // de ese momento los eventos quedan asociados al lead, no anon.
@@ -101,7 +93,6 @@ export async function track(evento, ctx = {}) {
     const utm = resolveUTM({ search: window.location.search, storage: window.localStorage });
     const sessionId = getOrCreateSessionId(window.localStorage);
     const payload = buildPayload({ evento, email: _email, ctx, utm, sessionId });
-    const supabase = await getSupabase();
     if (!supabase) return;
     await supabase.rpc("evento_funnel_log", payload);
   } catch (e) {
@@ -119,4 +110,4 @@ export function currentUTM() {
   }
 }
 
-export function _reset() { _email = null; _supabase = null; }
+export function _reset() { _email = null; }
