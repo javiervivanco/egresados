@@ -26,8 +26,23 @@ export const PlanesCreate = () => {
 };
 
 // Componente de campos comunes a create/edit. Se usa también en el modal nested.
-export const PlanFormFields = () => (
+export const PlanFormFields = () => {
+  const { options: ciudades } = useSelect({
+    resource: "ciudades",
+    optionLabel: "nombre",
+    optionValue: "id",
+    pagination: { mode: "off" },
+    sorters: [{ field: "nombre", order: "asc" }],
+  });
+  return (
   <>
+    <Form.Item
+      label="Origen (ciudad de salida)"
+      name="origen_ciudad_id"
+      tooltip="Dejá vacío si este plan se ofrece desde todas las ciudades en las que opera la empresa. Si lo seteás, sólo aparece para familias de esa ciudad."
+    >
+      <Select options={ciudades} showSearch optionFilterProp="label" allowClear placeholder="(hereda de la empresa)" />
+    </Form.Item>
     <Form.Item label="Plan de pago" name="plan_pago">
       <Input />
     </Form.Item>
@@ -49,4 +64,5 @@ export const PlanFormFields = () => (
     <Form.Item label="Seguro" name="seguro"><Input /></Form.Item>
     <Form.Item label="Descuentos" name="descuentos"><Input /></Form.Item>
   </>
-);
+  );
+};

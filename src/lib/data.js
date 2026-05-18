@@ -23,6 +23,7 @@ function dbRowToLegacy(row, destinoNombre, empresaNombre) {
   return {
     id_db: row.id,                       // plan_id en DB — usado por votos_plan
     destino_id: row.destino_id,          // FK al destino en DB
+    origen_ciudad_id: row.origen_ciudad_id || null, // FK ciudad de salida del plan (null = hereda empresa)
     Empresa: empresaNombre,
     Destino: destinoNombre,
     Transporte: row.transporte,
@@ -44,55 +45,62 @@ function dbRowToLegacy(row, destinoNombre, empresaNombre) {
   };
 }
 
+// Filtro puro plan-by-plan: matchea plan.origen_ciudad_id O hereda de
+// empresa. Exportado para testear sin Supabase.
+//
+// data: array de planes con shape { origen_ciudad_id, destinos: { empresa_id } }
+// ciudadId: number | null  — sin ciudadId devuelve data intacta
+// empresaIdsHerencia: array de IDs de empresas que operan desde ciudadId
+//                    (cuando plan.origen_ciudad_id es null, el plan "hereda"
+//                    los orígenes de la empresa).
+export function filtrarPorCiudad(data, ciudadId, empresaIdsHerencia) {
+  if (!ciudadId) return data;
+  const herencia = new Set(empresaIdsHerencia || []);
+  return data.filter((p) => {
+    if (p.origen_ciudad_id != null) return p.origen_ciudad_id === ciudadId;
+    return herencia.has(p.destinos?.empresa_id);
+  });
+}
+
 // Devuelve { rows, source, filteredByCiudad }
 //   source: "db" | "json"
-//   filteredByCiudad: true si la query se redujo a empresas que operan
-//                     desde ciudadId. Útil para mostrar el copy correcto
-//                     cuando no hay match.
+//   filteredByCiudad: true si la query se filtró por ciudad.
 //
-// Si se pasa ciudadId, sólo devuelve planes de empresas que tengan esa
-// ciudad listada en `empresas_origenes`. Sin ciudadId (admin / preview)
-// devuelve el catálogo completo.
+// Lógica de filtrado plan-by-plan (cuando hay ciudadId):
+//   a) Plan con origen_ciudad_id propio → solo si coincide con ciudadId.
+//   b) Plan sin origen_ciudad_id → hereda: empresa debe operar desde ciudadId
+//      (via empresas_origenes).
+// Sin ciudadId devuelve catálogo completo.
 export async function loadPlanes({ ciudadId = null } = {}) {
   if (!supabase) return { rows: RAW_LEGACY, source: "json", filteredByCiudad: false };
 
-  let empresaIds = null;
+  let empresaIdsHerencia = null;
   if (ciudadId) {
-    const { data: orig, error: errOrig } = await supabase
+    const { data: orig } = await supabase
       .from("empresas_origenes")
       .select("empresa_id")
       .eq("ciudad_id", ciudadId);
-    if (!errOrig && orig) {
-      empresaIds = orig.map((r) => r.empresa_id);
-      if (empresaIds.length === 0) {
-        // Sin empresas para esa ciudad → resultado vacío explícito (no
-        // caemos al fallback JSON que mostraría irrelevantes).
-        return { rows: [], source: "db", filteredByCiudad: true };
-      }
-    }
+    empresaIdsHerencia = (orig || []).map((r) => r.empresa_id);
   }
 
-  let q = supabase
+  const { data, error } = await supabase
     .from("planes_viaje")
     .select("*, destinos!inner(id, nombre, empresa_id, empresas!inner(nombre))")
     .eq("activo", true);
 
-  if (empresaIds && empresaIds.length > 0) {
-    q = q.in("destinos.empresa_id", empresaIds);
-  }
-
-  const { data, error } = await q;
-
   if (error || !data) {
     return { rows: RAW_LEGACY, source: "json", filteredByCiudad: false };
   }
-  if (data.length === 0) {
-    // Sin filtro y vacío → JSON fallback. Con filtro y vacío → vacío real.
+
+  // Filtrado plan-by-plan en JS (más simple que armar query OR compuesta).
+  const filtered = filtrarPorCiudad(data, ciudadId, empresaIdsHerencia);
+
+  if (filtered.length === 0) {
     if (ciudadId) return { rows: [], source: "db", filteredByCiudad: true };
     return { rows: RAW_LEGACY, source: "json", filteredByCiudad: false };
   }
 
-  const rows = data.map((p) =>
+  const rows = filtered.map((p) =>
     dbRowToLegacy(p, p.destinos.nombre, p.destinos.empresas.nombre)
   );
   return { rows, source: "db", filteredByCiudad: !!ciudadId };
