@@ -84,13 +84,14 @@ export function useVisitor() {
 }
 
 function parseURL() {
-  if (typeof window === "undefined") return { urlToken: null, urlEmail: null, urlUTM: {} };
+  if (typeof window === "undefined") return { urlToken: null, urlEmail: null, urlInvitacion: null, urlUTM: {} };
   const sp = new URLSearchParams(window.location.search);
   const urlToken = sp.get("t") || sp.get("token") || null;
   const urlEmail = sp.get("email") || null;
+  const urlInvitacion = sp.get("inv") || null;
   let urlUTM = {};
   try {
     urlUTM = resolveUTM({ search: window.location.search, storage: window.localStorage });
   } catch { /* ignore */ }
-  return { urlToken, urlEmail, urlUTM };
+  return { urlToken, urlEmail, urlInvitacion, urlUTM };
 }

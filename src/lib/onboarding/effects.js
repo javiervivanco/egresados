@@ -19,6 +19,18 @@ export async function fetchEscuelas() {
   return data || [];
 }
 
+// Resuelve un token de invitación (URL ?inv=<uuid>) contra el RPC public.
+// Devuelve { grupo_id, grupo_grado, anio_egreso, escuela_id, escuela_nombre, ciudad_id, expirado }
+// o null si el token no matchea / está vencido.
+export async function resolveInvitacion(token) {
+  if (!supabase || !token) return null;
+  const { data, error } = await supabase.rpc("grupo_resolver_invitacion", { p_token: token });
+  if (error || !data || data.length === 0) return null;
+  const row = Array.isArray(data) ? data[0] : data;
+  if (row.expirado) return null;
+  return row;
+}
+
 export async function fetchCiudades() {
   if (!supabase) return [];
   const { data, error } = await supabase

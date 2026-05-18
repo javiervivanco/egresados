@@ -1537,7 +1537,10 @@ export default function App() {
   if (visitor.loading) return null;
   const irOnboarding = !familia || (visitor.type === VISITOR.LEAD_FRIO && !identity.familiaId);
   if (irOnboarding) {
-    return <OnboardingFunnel onReady={(id) => setIdentity(id)} />;
+    return <OnboardingFunnel
+      onReady={(id) => setIdentity(id)}
+      invitacionToken={visitor.url?.urlInvitacion || null}
+    />;
   }
 
   // FunnelStatus CTA → scroll a la sección correspondiente.

@@ -4,11 +4,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
   Users, GraduationCap, MapPin, CalendarClock, MessageSquare, Vote,
-  ArrowRight, ArrowLeft, Check, Mail, Search,
+  ArrowRight, ArrowLeft, Check, Mail, Search, Copy, Share2,
 } from "lucide-react";
+import { supabase } from "../supabase";
 import { saveIdentity } from "../lib/identity";
 import { STATES } from "../lib/onboarding/machine";
 import { useOnboarding } from "../lib/onboarding/useOnboarding";
+import { loadTeaser } from "../lib/teaser";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +25,9 @@ import { Badge } from "@/components/ui/badge";
 const contactoSchema = z.object({
   email: z.string().min(1, "Email requerido").email("Email inválido"),
   apellido: z.string().optional(),
-  telefono: z.string().optional(),
+  telefono: z.string()
+    .min(8, "Necesitamos tu teléfono para coordinar con tu grupo")
+    .regex(/^[0-9+\s\-()]{8,}$/, "Teléfono inválido"),
 });
 
 const apellidoSchema = z.object({
@@ -50,20 +54,29 @@ const STEP_OF = {
   [STATES.DONE]:           3,
 };
 
-export default function OnboardingFunnel({ onReady }) {
-  const { state, ctx, escuelas, ciudades, grupos, bootLoading, legacyMode, actions } = useOnboarding();
+export default function OnboardingFunnel({ onReady, invitacionToken = null }) {
+  const { state, ctx, escuelas, ciudades, grupos, bootLoading, legacyMode, actions } =
+    useOnboarding({ invitacionToken });
   const [escuelaSearch, setEscuelaSearch] = useState("");
   const [legacyNombre, setLegacyNombre] = useState("");
+  const [invitacionVista, setInvitacionVista] = useState(false);
 
-  // Al llegar a DONE persistimos identidad + notificamos al padre. Side-effect
-  // del view, no de la FSM.
+  // Al llegar a DONE persistimos identidad PERO no avisamos al padre todavía.
+  // Mostramos primero la pantalla de invitación. onReady se llama cuando la
+  // familia cierra esa pantalla (o decide saltarla).
   useEffect(() => {
     if (state !== STATES.DONE) return;
     const nombre = `Familia ${ctx.apellido}`;
     const ciudadId = ctx.escuela?.ciudad_id || ctx.escuela?.ciudades?.id || null;
     saveIdentity({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id, ciudadId });
+  }, [state, ctx]);
+
+  useEffect(() => {
+    if (state !== STATES.DONE || !invitacionVista) return;
+    const nombre = `Familia ${ctx.apellido}`;
+    const ciudadId = ctx.escuela?.ciudad_id || ctx.escuela?.ciudades?.id || null;
     onReady?.({ nombre, familiaId: ctx.familiaId, grupoId: ctx.grupo?.id, ciudadId });
-  }, [state, ctx, onReady]);
+  }, [state, invitacionVista, ctx, onReady]);
 
   const escuelasFiltradas = useMemo(() => {
     const q = escuelaSearch.trim().toLowerCase();
@@ -133,6 +146,14 @@ export default function OnboardingFunnel({ onReady }) {
                 onCreateGrupo={actions.submitGrupoCrear}
                 onFinish={actions.submitApellido}
                 onBack={actions.back}
+              />
+            )}
+            {state === STATES.DONE && ctx.grupo && (
+              <InvitacionStep
+                grupoId={ctx.grupo.id}
+                escuelaNombre={ctx.escuela?.nombre || ""}
+                grado={ctx.grupo?.grado || ""}
+                onContinue={() => setInvitacionVista(true)}
               />
             )}
           </CardShell>
@@ -210,49 +231,57 @@ function BackBtn({ onClick }) {
 // Landing
 // ============================================================
 function Landing({ onStart }) {
-  const features = [
-    { icon: MapPin, title: "Todos los destinos", desc: "Bariloche, Carlos Paz, costa atlántica, termas — con precios actualizados." },
-    { icon: Vote, title: "Votación grupal", desc: "Las familias del grado deciden juntas qué propuesta les conviene." },
-    { icon: CalendarClock, title: "Reuniones coordinadas", desc: "Las empresas proponen fechas para presentar su propuesta al grupo." },
-    { icon: MessageSquare, title: "Chat directo", desc: "Comunicación con cada empresa sin intermediarios." },
-  ];
+  // Gancho de marketing: ver destinos SIN precio antes de registrarse.
+  // El usuario explora libremente; el precio queda detrás del onboarding.
+  const [destinos, setDestinos] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    loadTeaser().then((d) => { if (!cancelled) setDestinos(d); });
+    return () => { cancelled = true; };
+  }, []);
 
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="font-sans italic text-xl sm:text-2xl text-foreground text-center mb-6">¿Cómo funciona?</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {features.map(({ icon: Icon, title, desc }) => (
-            <Card key={title}>
-              <CardContent className="p-4 sm:p-5 flex gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Icon className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-foreground text-[15px] mb-0.5">{title}</h3>
-                  <p className="text-muted-foreground text-[13.5px] leading-relaxed">{desc}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <h2 className="font-sans italic text-xl sm:text-2xl text-foreground text-center mb-2">
+          Mirá las opciones disponibles
+        </h2>
+        <p className="text-muted-foreground text-sm text-center mb-6 max-w-2xl mx-auto">
+          Estos son los destinos a los que viajan los grupos de egresados. <strong>Los precios y cuotas se desbloquean cuando completás tu registro</strong> — así sabés qué propuesta te conviene a vos y a tu grupo.
+        </p>
+        {destinos.length > 0 ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
+            {destinos.slice(0, 12).map((d) => (
+              <Card key={d.nombre} className="overflow-hidden">
+                <CardContent className="p-3 text-center">
+                  <p className="font-bold text-foreground text-[14px] leading-tight mb-1">{d.nombre}</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {d.empresas} {d.empresas === 1 ? "empresa" : "empresas"}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm text-center mb-6">Cargando destinos…</p>
+        )}
       </section>
 
-      <Card className="shadow-lg">
+      <Card className="shadow-lg border-primary/30">
         <CardContent className="p-6 sm:p-8 text-center">
-          <CardTitle className="font-sans italic text-xl sm:text-2xl mb-2">Empezá registrándote</CardTitle>
+          <CardTitle className="font-sans italic text-xl sm:text-2xl mb-2">Desbloqueá los precios</CardTitle>
           <CardDescription className="mb-5 max-w-md mx-auto">
-            Te pedimos tu mail y elegís tu escuela. Si todavía no la cargamos, te avisamos cuando esté lista.
+            Mail + teléfono + tu escuela: tres pasos para ver cuotas reales y empezar a comparar con tu grupo.
           </CardDescription>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mb-5 flex-wrap">
-            <StepPreview n={1} label="Tu mail" />
+            <StepPreview n={1} label="Tu contacto" />
             <ArrowRight className="w-3 h-3 opacity-50" />
             <StepPreview n={2} label="Tu escuela" />
             <ArrowRight className="w-3 h-3 opacity-50" />
             <StepPreview n={3} label="Tu grado" />
           </div>
           <Button size="lg" onClick={onStart} className="font-bold">
-            Empezar <ArrowRight className="w-4 h-4" />
+            Ver los precios <ArrowRight className="w-4 h-4" />
           </Button>
         </CardContent>
       </Card>
@@ -306,10 +335,16 @@ function ContactoStep({ defaultValues, error, onSubmit, onBack }) {
             control={form.control} name="telefono"
             render={({ field }) => (
               <FormItem>
-                <FormControl><Input type="tel" placeholder="Teléfono (opcional)" {...field} /></FormControl>
+                <FormControl>
+                  <Input type="tel" placeholder="Teléfono (ej. +54 9 11 1234-5678)" {...field} />
+                </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
+          <p className="text-[11.5px] text-muted-foreground -mt-1">
+            Lo usamos para coordinar por WhatsApp con tu grupo (sin spam ni reventa).
+          </p>
           {error && <p className="text-destructive text-sm">{error}</p>}
           <Button type="submit" className="w-full font-bold" disabled={form.formState.isSubmitting}>
             {form.formState.isSubmitting ? "Guardando…" : <>Continuar <ArrowRight className="w-4 h-4" /></>}
@@ -519,6 +554,80 @@ function GrupoStep({ state, escuela, grupos, grupo, defaultApellido, submitting,
         </form>
       </Form>
       <BackBtn onClick={onBack} />
+    </>
+  );
+}
+
+// ============================================================
+// Invitación: post-DONE. Pantalla viral: la primera familia comparte
+// el link de su grupo. Token vive 90 días y rota en `grupos`.
+// ============================================================
+function InvitacionStep({ grupoId, escuelaNombre, grado, onContinue }) {
+  const [token, setToken] = useState(null);
+  const [copiado, setCopiado] = useState(false);
+
+  useEffect(() => {
+    if (!grupoId || !supabase) return;
+    let cancelled = false;
+    supabase.from("grupos")
+      .select("invitacion_token, invitacion_expira_at")
+      .eq("id", grupoId)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled) setToken(data?.invitacion_token || null); });
+    return () => { cancelled = true; };
+  }, [grupoId]);
+
+  const url = token ? `${window.location.origin}/?inv=${token}` : "";
+  const mensaje = `¡Hola! Me sumé a la plataforma para comparar viajes de egresados de ${escuelaNombre}${grado ? ` (${grado})` : ""}. Sumate y elegimos juntos: ${url}`;
+  const waUrl = `https://wa.me/?text=${encodeURIComponent(mensaje)}`;
+
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 1500);
+    } catch {/* clipboard puede fallar en http; el link es visible igual */}
+  };
+
+  return (
+    <>
+      <div className="text-center mb-4">
+        <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
+          <Check className="w-7 h-7 text-primary-foreground" />
+        </div>
+        <CardTitle className="font-sans italic text-2xl mb-1">¡Listo, ya estás dentro!</CardTitle>
+        <CardDescription>
+          Sumá a las otras familias de tu grado para comparar precios juntos.
+        </CardDescription>
+      </div>
+
+      <div className="bg-accent/10 border border-accent/40 rounded-lg p-3 mb-3">
+        <p className="text-[13px] text-foreground mb-2">
+          <strong>Compartí este link con tu grupo.</strong> Cuando entren, ya tienen tu escuela y grado preseleccionados.
+        </p>
+        <div className="flex items-center gap-2 bg-card border rounded-md px-2 py-1.5">
+          <code className="text-[12px] text-muted-foreground flex-1 truncate">{url || "Generando link…"}</code>
+          <Button size="sm" variant="outline" onClick={copiar} disabled={!url}>
+            <Copy className="w-3.5 h-3.5" />
+            {copiado ? "¡copiado!" : ""}
+          </Button>
+        </div>
+      </div>
+
+      <a href={url ? waUrl : "#"} target="_blank" rel="noopener noreferrer" className="block">
+        <Button className="w-full font-bold bg-[#25D366] hover:bg-[#1da851] text-white" disabled={!url}>
+          <Share2 className="w-4 h-4" />
+          Compartir por WhatsApp
+        </Button>
+      </a>
+
+      <p className="text-[11px] text-muted-foreground text-center mt-3">
+        Más familias = más opciones de descuento grupal. El link vale 90 días.
+      </p>
+
+      <Button variant="link" className="w-full mt-3 text-muted-foreground" onClick={onContinue}>
+        Más tarde — ir a comparar destinos →
+      </Button>
     </>
   );
 }

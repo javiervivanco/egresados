@@ -15,7 +15,7 @@ function reducer(state, action) {
   return transition(state, action.type, action.payload);
 }
 
-export function useOnboarding({ leadIdInitial = null } = {}) {
+export function useOnboarding({ leadIdInitial = null, invitacionToken = null } = {}) {
   const [machine, dispatch] = useReducer(reducer, undefined, initialState);
   const leadRef = useRef(leadIdInitial);
   const [escuelas, setEscuelas] = useState([]);
@@ -54,6 +54,17 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
     return () => { cancelled = true; };
   }, [machine.ctx.escuela?.id, machine.ctx.escuela?._pendiente]);
 
+  // Si vino con ?inv=<token>, resolver una vez al mount y guardar.
+  const [invitacionData, setInvitacionData] = useState(null);
+  useEffect(() => {
+    if (!invitacionToken) return;
+    let cancelled = false;
+    fx.resolveInvitacion(invitacionToken).then((row) => {
+      if (!cancelled) setInvitacionData(row);
+    });
+    return () => { cancelled = true; };
+  }, [invitacionToken]);
+
   // -------- Actions (closures que envuelven effects + dispatch) --------
 
   const start = useCallback(() => {
@@ -68,7 +79,19 @@ export function useOnboarding({ leadIdInitial = null } = {}) {
     attachLead(contacto.email);
     track("onboarding_contacto_submit", { lead_id: leadRef.current });
     dispatch({ type: EVENTS.SUBMIT_CONTACTO, payload: contacto });
-  }, []);
+
+    // Si vino con invitación válida, saltear el picker: escuela + grupo
+    // ya están definidos por la invitación. La familia solo confirma
+    // apellido al final.
+    if (invitacionData && !invitacionData.expirado) {
+      const escuela = { id: invitacionData.escuela_id, nombre: invitacionData.escuela_nombre, ciudad_id: invitacionData.ciudad_id };
+      const grupo = { id: invitacionData.grupo_id, grado: invitacionData.grupo_grado, anio_egreso: invitacionData.anio_egreso };
+      track("onboarding_invitacion_aplicada", { grupo_id: grupo.id });
+      // PICK_ESCUELA con grupos no-vacíos para ir a GRUPO_ELEGIR, después PICK_GRUPO.
+      dispatch({ type: EVENTS.PICK_ESCUELA, payload: { escuela, grupos: [grupo] } });
+      dispatch({ type: EVENTS.PICK_GRUPO, payload: { grupo } });
+    }
+  }, [invitacionData]);
 
   const toLibre = useCallback(() => { track("onboarding_escuela_libre"); dispatch({ type: EVENTS.TO_LIBRE }); }, []);
   const toBuscar = useCallback(() => dispatch({ type: EVENTS.TO_BUSCAR }), []);
