@@ -1,0 +1,129 @@
+title "Egresados — Modelo de Datos (C3 del container PostgreSQL)"
+
+// ─── Personas (actores externos) ──────────────────────────────────────
+(person)familia "Familia" {
+    descr "Identidad persistida vía `signInAnonymously` + tabla `profiles` (rol=familia, familia_id)."
+}
+
+(person)empresa-admin "Admin de Empresa" {
+    descr "Identidad persistida vía `signInWithPassword` + tabla `profiles` (rol=empresa_admin, empresa_id)."
+}
+
+(person)super-admin "Super Admin" {
+    descr "Único rol con bypass de RLS (is_super_admin() = true). Único que puede mover ventas a pagada/liquidada."
+}
+
+// ─── Container bajo descomposición ────────────────────────────────────
+(container-boundary)db "PostgreSQL — modelo de datos" {
+
+    // ── Núcleo de identidad y catálogos ──────────────────────────────
+    (component-boundary)nucleo "Núcleo de identidad y catálogos" {
+
+        (component)identidad "Identidad" "profiles + helpers RLS" {
+            descr "Tabla `profiles`: vincula `auth.users` (Supabase Auth) con `rol` ∈ {super_admin, empresa_admin, familia} y entidad relacionada (`empresa_id` o `familia_id`). Habilita que las policies RLS lean el rol sin re-lookup. Anonymous sign-in de familias crea un profile con rol=familia en el mismo flow que el INSERT en `familias` (migration 0017)."
+        }
+
+        (component-db)clientes "Clientes" "escuelas/grupos/familias/alumnos/familia_miembros" {
+            descr "Jerarquía de unidades familiares: escuelas → grupos (año/grado) → familias → alumnos. Soporta onboarding via IdentityGate (escuela → grupo → apellido). La tabla `escuelas` tiene columna `estado` ∈ {activa, pendiente, archivada} para auto-creación desde onboarding (migration 0008). `grupos` tiene `invitacion_token` + `invitacion_expira_at` (90 días, migration 0013). `familia_miembros` permite múltiples alumnos por familia."
+        }
+
+        (component-db)oferta "Oferta" "empresas/destinos/planes_viaje/documentos" {
+            descr "Jerarquía de planes: empresas → destinos → planes_viaje. `documentos` referencia el bucket privado `documentos` de Supabase Storage (FK lógica por path). `empresas.comision_pct_default` (default 8%) alimenta las ventas via trigger (migration 0003). `planes_viaje.origen_ciudad_id` (migration 0015) habilita matching plan-by-plan."
+        }
+
+        (component-db)geo "Geo / Matching" "ciudades/empresas_origenes" {
+            descr "Datos geográficos. `ciudades` indexada por escuelas y planes_viaje. `empresas_origenes` lista ciudades de salida por empresa (un plan sin `origen_ciudad_id` hereda los orígenes de su empresa). Soporta el wizard geográfico del frontend público y el matching oferta↔grupo del admin."
+        }
+    }
+
+    // ── Etapas del funnel de venta ───────────────────────────────────
+    (component-boundary)funnel "Etapas del funnel de venta" {
+
+        (component-db)votacion-fechas "Votación de fechas" "fechas_reunion/votos_fecha" {
+            descr "Etapa 1. Empresa-admin propone `fechas_reunion` a un grupo. Familias del grupo votan sí/no en `votos_fecha` (`MeetingDateVoting`). La fecha confirmada se usa para coordinar la reunión presencial/virtual antes de la votación de planes."
+        }
+
+        (component-db)votacion-planes "Votación de planes" "votos_plan" {
+            descr "Etapa 2. Familias rankean `planes_viaje` con prioridad ∈ {1, 2, 3}. `unique (familia_id, prioridad)` evita duplicados por slot. Triggered por `QuickVote`. Eventualmente `VotingResults` va a leer de acá joined con `familias → grupos → escuelas`."
+        }
+
+        (component-db)mensajeria "Mensajería" "mensajes" {
+            descr "Hilos empresa↔grupo. Un hilo existe si la empresa propuso fecha (`fechas_reunion`) o si hubo conversación (`mensajes`). `contenido` es inmutable (audit trail). Badges de no-leídos vía `leido_empresa`/`leido_grupo`. `autor_rol` valida que empresa_admin del mensaje sea de la `empresa_id` correcta, y que familia sea del `grupo_id` correcto."
+        }
+
+        (component-db)ventas "Ventas y comisiones" "ventas" {
+            descr "Cierre del funnel. `monto_total` y `comision_monto` son generated columns. `comision_pct` se setea via trigger desde `empresas.comision_pct_default` si no se pasa explícito. Estados: borrador → confirmada → pagada → liquidada + cancelada (timestamps estampados por trigger). `unique index` parcial `(grupo_id) WHERE estado ∈ activa` impide que un grupo quede cerrado con dos empresas."
+        }
+    }
+
+    // ── Crecimiento y soporte ────────────────────────────────────────
+    (component-boundary)growth "Crecimiento y soporte" {
+
+        (component-db)crm "CRM de leads" "leads/lead_actividades" {
+            descr "Leads pre-identidad (familia aún no registrada). `lead_actividades` registra interacciones. Conversión a familia via RPC `lead_to_familia` (migrations 0005-0007). Captura UTM y datos de origen del tráfico."
+        }
+
+        (component-db)marketing "Marketing / Atribución" "eventos_anon" {
+            descr "Eventos anónimos para entender el funnel discovery→registro. Permite atribuir conversiones a campañas sin necesidad de auth. Alimenta el dashboard de conversión y la decisión de inversión en ads."
+        }
+
+        (component-db)correcciones "Correcciones reportadas" "correcciones" {
+            descr "Reportes de usuarios sobre errores en cualquier entidad (planes con precio mal cargado, destinos con datos erróneos, etc). Triage del super-admin o del empresa-admin dueño. Sin SLA formal, capturado para revisión manual."
+        }
+
+        (component-db)legacy "Espejos legacy" "planes/votos" {
+            descr "Tablas planas (`planes`, `votos`) que mirrorean los datos JSON originales pre-multi-tenant. No se insertan filas nuevas. `votos` sigue siendo la fuente de `VotingResults` hasta migrar a `votos_plan` joinado con familias. `planes` es histórico. Eventual deprecación."
+        }
+    }
+
+    // ── Cross-cutting: RLS helpers ───────────────────────────────────
+    (component)rls-helpers "RLS helpers" "Funciones SQL SECURITY DEFINER" {
+        descr "Funciones de soporte para Row Level Security. `is_super_admin()`, `is_empresa_admin(empresa_id)`, `current_familia_id()`, `current_familia_in_grupo(grupo_id)`. Aplicadas en policies de TODAS las tablas mutables (escuelas, empresas, ventas, mensajes, etc). Sin esto el multi-tenancy se rompe — son la pieza crítica de seguridad."
+    }
+
+    // ─── Relaciones entre componentes (FK lógicas) ──────────────────
+    identidad to clientes "profiles.familia_id referencia familias.id" "FK"
+    identidad to oferta "profiles.empresa_id referencia empresas.id" "FK"
+    clientes to votacion-fechas "fechas_reunion.grupo_id → grupos.id" "FK"
+    clientes to votacion-planes "votos_plan.familia_id → familias.id" "FK"
+    clientes to mensajeria "mensajes.grupo_id → grupos.id" "FK"
+    crm to clientes "leads → familia via RPC de conversión" "FK"
+    oferta to geo "planes_via.origen_ciudad_id → ciudades.id" "FK"
+    oferta to votacion-fechas "fechas_reunion.empresa_id → empresas.id" "FK"
+    oferta to votacion-planes "votos_plan.plan_id → planes_viaje.id" "FK"
+    oferta to ventas "ventas.plan_id → planes_viaje.id" "FK"
+    oferta to mensajeria "mensajes.empresa_id → empresas.id" "FK"
+    geo to clientes "escuelas.ciudad_id → ciudades.id" "FK"
+    legacy to oferta "planes (mirror) refleja planes_viaje" "DEPRECATED"
+    legacy to votacion-planes "votos (mirror) duplica votos_plan" "DEPRECATED"
+    rls-helpers to identidad "Lee profiles del JWT para resolver rol" "SECURITY DEFINER"
+    rls-helpers to clientes "current_familia_in_grupo() valida membresía" "SECURITY DEFINER"
+    rls-helpers to oferta "is_empresa_admin(empresa_id) autoriza UPDATE" "SECURITY DEFINER"
+    rls-helpers to ventas "Único rol super_admin puede mover a pagada/liquidada" "SECURITY DEFINER"
+}
+
+// ─── Personas → Componentes (RLS-enforced) ────────────────────────────
+// Familias (anon JWT, current_familia_id() resuelve)
+familia to clientes "INSERT/UPDATE en su propia fila de familia + RLS"
+familia to votacion-fechas "INSERT en votos_fecha del grupo al que pertenece" "RLS"
+familia to votacion-planes "UPSERT en votos_plan(familia_id, prioridad)" "RLS unique"
+familia to mensajeria "INSERT mensajes del grupo, autor_rol=familia" "RLS check"
+familia to correcciones "INSERT reportes sin restricción" "RLS"
+
+// Empresa-admins (admin JWT, is_empresa_admin() resuelve)
+empresa-admin to oferta "INSERT/UPDATE destinos/planes_viaje/documentos de su empresa" "RLS"
+empresa-admin to votacion-fechas "INSERT fechas_reunion proponiendo al grupo" "RLS"
+empresa-admin to mensajeria "INSERT mensajes del hilo, autor_rol=empresa" "RLS check"
+empresa-admin to ventas "INSERT/UPDATE ventas en borrador/confirmada" "RLS"
+empresa-admin to correcciones "UPDATE triage de su empresa" "RLS"
+
+// Super-admins (bypass total vía is_super_admin())
+super-admin to identidad "INSERT/UPDATE profiles de admins" "bypass"
+super-admin to clientes "INSERT/UPDATE escuelas/grupos/familias" "bypass"
+super-admin to oferta "INSERT/UPDATE catálogos base" "bypass"
+super-admin to geo "INSERT/UPDATE ciudades y matching" "bypass"
+super-admin to ventas "Único que UPDATE a pagada/liquidada" "bypass + check"
+super-admin to crm "SELECT dashboard agregado" "bypass"
+super-admin to marketing "SELECT métricas de atribución" "bypass"
+super-admin to legacy "SELECT — sin INSERT nuevos" "bypass"
+super-admin to correcciones "UPDATE triage final" "bypass"
