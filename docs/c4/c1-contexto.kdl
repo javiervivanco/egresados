@@ -1,0 +1,57 @@
+title "Egresados — Diagrama de Contexto (C1)"
+
+// ─── Personas (actores externos) ──────────────────────────────────────
+(person)familia "Familia" {
+    descr "Madre, padre o tutor de un egresado. Descubre planes, vota fechas de reunión y rankea planes 1-3. Chatea con la empresa. Se identifica vía escuela → grupo → apellido + sign-in anónimo."
+}
+
+(person)empresa-admin "Admin de Empresa" {
+    descr "Operador de una empresa de viajes. Carga destinos/planes/documentos, propone fechas de reunión al grupo, responde mensajes, registra ventas confirmadas. Sign-in con email/password."
+}
+
+(person)super-admin "Super Admin" {
+    descr "Dueño del marketplace. Carga catálogos base (escuelas, empresas), crea perfiles de empresa-admin y otras escuelas, audita comisiones (marca pagada/liquidada), única vía para asignar pagos al vendor."
+}
+
+// ─── Sistema bajo diseño ──────────────────────────────────────────────
+(enterprise-boundary)egresados "Egresados" {
+    (system)marketplace "Marketplace de Viajes de Egresados" {
+        descr "Plataforma multi-tenant con dos frontends (público + admin) sobre Supabase (Postgres + Storage + Auth + Edge Functions). Modela el funnel completo de venta de un viaje de egresados con comisiones para la plataforma."
+    }
+}
+
+// ─── Sistemas externos ────────────────────────────────────────────────
+(system-ext)supabase-auth "Supabase Auth" {
+    descr "Servicio de identidad. Soporta anonymous sign-in (familias) y email/password (admins). Emite JWT que el backend respeta en cada request vía RLS."
+}
+
+(system-ext)supabase-storage "Supabase Storage" {
+    descr "Object storage S3-compatible. Aloja el bucket privado `documentos` (PDFs/planillas de planes). RLS vía policies + signed URLs."
+}
+
+(system-ext)pasarela-pago "Pasarela de Pago (futuro)" {
+    descr "Integración de cobro online para Inscripción/Reserva. Hoy el flujo se cierra sin cobro digital (la empresa cobra directo a las familias)."
+}
+
+(system-ext)ia-extraccion "Pipeline IA de Documentos (futuro)" {
+    descr "Edge function LLM/OCR para extraer datos estructurados de PDFs subidos a Storage. Hoy ocupada por un mock client-side (transición pendiente → procesando → procesado)."
+}
+
+// ─── Relaciones ──────────────────────────────────────────────────────
+// Familias con el sistema
+familia to marketplace "Descubre planes, vota fechas, rankea planes 1-3, chatea con empresas" "HTTPS / SPA"
+familia to supabase-auth "Sign-in anónimo y persistencia de sesión" "JWT"
+
+// Empresa-admin con el sistema
+empresa-admin to marketplace "Gestiona destinos/planes/documentos, propone fechas, registra ventas, responde mensajes" "HTTPS / SPA"
+empresa-admin to supabase-auth "Sign-in con email/password" "JWT"
+
+// Super-admin con el sistema
+super-admin to marketplace "Carga catálogos base, crea perfiles de admins, audita comisiones, controla pagos" "HTTPS / SPA"
+super-admin to supabase-auth "Sign-in con email/password" "JWT"
+
+// Sistema con sistemas externos
+marketplace to supabase-auth "Valida JWT en cada request vía RLS + helper current_familia_id()/is_empresa_admin()" "interno"
+marketplace to supabase-storage "Lee/escribe objetos del bucket `documentos` (PDFs de planes)" "HTTPS"
+marketplace to pasarela-pago "Cobra Inscripción y Reserva (cuando se integre)" "HTTPS (futuro)"
+marketplace to ia-extraccion "Webhook al insert en `documentos` → extrae datos → persiste en datos_extraidos" "HTTPS (futuro)"

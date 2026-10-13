@@ -18,3 +18,6 @@ admin/dist
 # Playwright MCP cache (screenshots, snapshots, console logs por sesión)
 .playwright-mcp/
 *.png
+
+# Excepción: PNGs de documentación arquitectónica versionados como fuente
+!docs/**/*.png

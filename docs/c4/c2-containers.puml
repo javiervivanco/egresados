@@ -1,0 +1,39 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+LAYOUT_WITH_LEGEND()
+title "Egresados — Vista de Contenedores (C2)"
+Person("familia", "Familia", $descr="Madre, padre o tutor de un egresado. Descubre planes, vota fechas y rankea planes 1-3.")
+Person("empresa_admin", "Admin de Empresa", $descr="Operador de una empresa de viajes. Carga destinos/planes/documentos, propone fechas, registra ventas.")
+Person("super_admin", "Super Admin", $descr="Dueño del marketplace. Carga catálogos, crea admins, audita comisiones.")
+Enterprise_Boundary("egresados", "Egresados") {
+Container("web_public", "Frontend público", "React 18 + Vite + Tailwind + shadcn/ui", $descr="SPA de familias. Compara cards de planes, wizard de descubrimiento, vota fechas (MeetingDateVoting), rankea planes 1-3 (QuickVote), mensajería con empresa (Messaging). Port 5173.", $tags="cliente, spa")
+Container("web_admin", "Admin SPA", "Refine + AntD + Vite", $descr="SPA de gestión. CRUD de catálogos (escuelas/grupos/empresas/destinos/planes/documentos), propuestas de reunión (FechasReunionSection), ventas (VentasSection), mensajería (AdminMessaging), dashboard de comisiones (SuperVentas). Port 5174.", $tags="cliente, spa, admin")
+Container("auth", "Auth", "GoTrue (Supabase)", $descr="Anonymous sign-in para familias (signInAnonymously). Email/password para admins (signInWithPassword). Emite JWT. Tabla profiles vincula user_id con rol (super_admin | empresa_admin | familia) y entidad relacionada (empresa_id o familia_id).")
+ContainerDb("db", "PostgreSQL", "Postgres 15 + RLS", $descr="Fuente de verdad. Tablas: escuelas, grupos, familias, alumnos, empresas, destinos, planes_viaje, documentos, fechas_reunion, votos_fecha, votos_plan, mensajes, ventas, profiles, leads, eventos_anon, invitaciones_grupo, familia_miembros. RLS activo en todas las tablas con helpers is_super_admin()/is_empresa_admin()/current_familia_id()/current_familia_in_grupo().", $tags="datos, core")
+Container("storage", "Object Storage", "S3-compatible (Supabase)", $descr="Bucket privado `documentos` para PDFs/planillas de planes. RLS vía policies + signed URLs. Solo empresa-admin dueña y super-admin pueden leer; empresa-admin dueña puede escribir.", $tags="datos")
+Container("edge_fns", "Edge Functions", "Deno (Supabase)", $descr="Runtime para funciones serverless. Hoy vacío. Va a alojar el handler de documentos (insert en `documentos` → descarga PDF → LLM/OCR → datos_extraidos). Mock client-side ocupa su rol hasta que se implemente.", $tags="compute, futuro")
+Rel("web_public", "db", "Lee planes_viaje/destinos/empresas, escribe votos_fecha/votos_plan/votos")
+Rel("web_public", "auth", "signInAnonymously, lee perfil (familia_id)")
+Rel("web_public", "storage", "Lee PDFs públicos de planes")
+Rel("web_admin", "db", "CRUD catálogos, propuestas de reunión, ventas, mensajes, leads")
+Rel("web_admin", "auth", "signInWithPassword, lee perfil (rol + empresa_id)")
+Rel("web_admin", "storage", "Sube documentos, lee con policies")
+Rel("web_admin", "edge_fns", "Trigger `procesar-documento` desde upload")
+Rel("edge_fns", "storage", "Descarga PDF recién subido")
+Rel("edge_fns", "db", "Lee `documentos`, escribe `datos_extraidos` + transición procesado_estado")
+Rel("auth", "db", "Persiste `auth.users`, valida JWT en cada request")
+}
+System_Ext("supabase_storage_ext", "Supabase Storage (infra externa)", $descr="Managed storage de Supabase. Se modela como system-ext en C1 porque es un servicio de terceros; en C2 los containers de egress lo usan como dependencia.")
+Rel("familia", "web_public", "Navega, vota, chatea")
+Rel("familia", "auth", "Sign-in anónimo y persistencia de sesión")
+Rel("empresa_admin", "web_admin", "Gestiona su empresa")
+Rel("empresa_admin", "auth", "Sign-in con email/password")
+Rel("super_admin", "web_admin", "Configura plataforma y audita")
+Rel("super_admin", "auth", "Sign-in con email/password")
+Rel("egresados", "supabase_storage_ext", "Usa buckets como dependencia desplegada")
+@enduml

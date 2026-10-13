@@ -1,0 +1,30 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Deployment.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4.puml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Dynamic.puml
+LAYOUT_WITH_LEGEND()
+title "Egresados — Diagrama de Contexto (C1)"
+Person("familia", "Familia", $descr="Madre, padre o tutor de un egresado. Descubre planes, vota fechas de reunión y rankea planes 1-3. Chatea con la empresa. Se identifica vía escuela → grupo → apellido + sign-in anónimo.")
+Person("empresa_admin", "Admin de Empresa", $descr="Operador de una empresa de viajes. Carga destinos/planes/documentos, propone fechas de reunión al grupo, responde mensajes, registra ventas confirmadas. Sign-in con email/password.")
+Person("super_admin", "Super Admin", $descr="Dueño del marketplace. Carga catálogos base (escuelas, empresas), crea perfiles de empresa-admin y otras escuelas, audita comisiones (marca pagada/liquidada), única vía para asignar pagos al vendor.")
+Enterprise_Boundary("egresados", "Egresados") {
+System("marketplace", "Marketplace de Viajes de Egresados", $descr="Plataforma multi-tenant con dos frontends (público + admin) sobre Supabase (Postgres + Storage + Auth + Edge Functions). Modela el funnel completo de venta de un viaje de egresados con comisiones para la plataforma.")
+}
+System_Ext("supabase_auth", "Supabase Auth", $descr="Servicio de identidad. Soporta anonymous sign-in (familias) y email/password (admins). Emite JWT que el backend respeta en cada request vía RLS.")
+System_Ext("supabase_storage", "Supabase Storage", $descr="Object storage S3-compatible. Aloja el bucket privado `documentos` (PDFs/planillas de planes). RLS vía policies + signed URLs.")
+System_Ext("pasarela_pago", "Pasarela de Pago (futuro)", $descr="Integración de cobro online para Inscripción/Reserva. Hoy el flujo se cierra sin cobro digital (la empresa cobra directo a las familias).")
+System_Ext("ia_extraccion", "Pipeline IA de Documentos (futuro)", $descr="Edge function LLM/OCR para extraer datos estructurados de PDFs subidos a Storage. Hoy ocupada por un mock client-side (transición pendiente → procesando → procesado).")
+Rel("familia", "marketplace", "Descubre planes, vota fechas, rankea planes 1-3, chatea con empresas")
+Rel("familia", "supabase_auth", "Sign-in anónimo y persistencia de sesión")
+Rel("empresa_admin", "marketplace", "Gestiona destinos/planes/documentos, propone fechas, registra ventas, responde mensajes")
+Rel("empresa_admin", "supabase_auth", "Sign-in con email/password")
+Rel("super_admin", "marketplace", "Carga catálogos base, crea perfiles de admins, audita comisiones, controla pagos")
+Rel("super_admin", "supabase_auth", "Sign-in con email/password")
+Rel("marketplace", "supabase_auth", "Valida JWT en cada request vía RLS + helper current_familia_id()/is_empresa_admin()")
+Rel("marketplace", "supabase_storage", "Lee/escribe objetos del bucket `documentos` (PDFs de planes)")
+Rel("marketplace", "pasarela_pago", "Cobra Inscripción y Reserva (cuando se integre)")
+Rel("marketplace", "ia_extraccion", "Webhook al insert en `documentos` → extrae datos → persiste en datos_extraidos")
+@enduml
