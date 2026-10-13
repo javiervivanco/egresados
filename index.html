@@ -5,7 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+    <!-- Montserrat se carga via @import en src/index.css (una sola vez) -->
+    <script>
+      // Aplica el tema antes del primer render para evitar FOUC. Skeleton activa
+      // cada tema con [data-theme='X'] en <html> — necesitamos que matchee desde
+      // el primer paint para que nuestros aliases en :root resuelvan colores.
+      (function () {
+        try {
+          var KEY = 'egresados_theme';
+          var saved = localStorage.getItem(KEY);
+          var THEMES = ['cerberus', 'vox', 'mona', 'rose', 'pine'];
+          var name = saved && THEMES.indexOf(saved) >= 0 ? saved : 'cerberus';
+          document.documentElement.setAttribute('data-theme', name);
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'cerberus');
+        }
+      })();
+    </script>
     <title>Viajes de egresados · Comparativa 2026</title>
   </head>
   <body>
