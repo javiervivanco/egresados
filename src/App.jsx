@@ -86,20 +86,20 @@ function HelpTip({ children }) {
 
 // === GLOSARIO TÉCNICO (textos para tooltips) ===
 const GLOSARIO = {
-  cuotaMensual: "Monto fijo que pagás cada mes durante todo el plan. Importante: confirmá con la empresa si el valor queda fijo o se ajusta por inflación.",
-  ultimaCuota: "Mes estimado en el que pagarías la última cuota si arrancás los pagos este mes. La fecha real puede variar según cuándo firmes el contrato.",
-  alFirmar: "Plata que se paga al momento de firmar el contrato. Reserva tu lugar e incluye la inscripción más cualquier reserva o primera cuota especial.",
-  inscripcion: "Primer pago al firmar el contrato. Forma parte del precio total del viaje.",
-  reserva: "Adelanto pequeño al apuntarse. En algunas empresas se suma a la inscripción.",
-  primeraCuota: "Pago al firmar, distinto del valor de las cuotas mensuales habituales.",
-  anticipo: "Pago grande adicional, fuera de las cuotas, que se hace antes del viaje.",
-  totalFinal: "Suma de todos los pagos del plan elegido (inscripción, reserva, cuotas y anticipo). No incluye gastos personales en el viaje.",
-  contado: "Precio si pagás todo el viaje en uno o pocos pagos al inicio. Suele ser bastante más barato que el plan en cuotas.",
-  cheapest: "Es el plan más barato disponible para esta misma duración del viaje, dentro de esta empresa y destino.",
-  liberados: "Pasajeros que viajan sin pagar. Suelen ser acompañantes adultos o premios cuando el grupo llega a cierto número de chicos.",
-  seguro: "Garantiza el reintegro del dinero pagado si la empresa no cumple con el viaje. Confirmá con la empresa el alcance exacto (cancelación, quiebra, etc.).",
-  descuentos: "Beneficios sobre el precio. Suelen aplicar a hermanos que ya viajaron, contratación temprana o casos especiales.",
-  vigencia: "Hasta cuándo está garantizado el precio publicado. Pasada la fecha la empresa puede actualizar tarifas.",
+  cuotaMensual: "Lo que pagás cada mes. Confirmá con la empresa si el valor queda fijo o se ajusta por inflación.",
+  ultimaCuota: "Si empezás a pagar este mes, esta es la fecha estimada de tu última cuota. Puede variar según cuándo firmes.",
+  alFirmar: "Lo que pagás para reservar tu lugar: inscripción, reserva y primera cuota si la hay. Algunos rubros se suman, otros son opcionales.",
+  inscripcion: "El primer pago al firmar. Ya forma parte del precio total.",
+  reserva: "Un adelanto chico para apartar tu lugar. Algunas empresas lo suman a la inscripción.",
+  primeraCuota: "Un pago al firmar más alto o más bajo que las cuotas siguientes.",
+  anticipo: "Un pago extra grande, afuera de las cuotas, antes del viaje.",
+  totalFinal: "Lo que sale en total: inscripción + reserva + cuotas + anticipo. No incluye gastos personales en el viaje.",
+  contado: "El precio si pagás todo junto (o en pocos pagos grandes al inicio). Casi siempre conviene más que en cuotas.",
+  cheapest: "El plan más barato que encontramos para esta duración y este destino en esta empresa.",
+  liberados: "Pasajeros que no pagan. Suelen ser acompañantes o premios cuando el grupo llega a cierto tamaño.",
+  seguro: "Si la empresa no cumple, te reintegran lo que pagaste. Pediles el detalle antes de firmar: qué cubre y qué no.",
+  descuentos: "Beneficios sobre el precio. Lo más común: contratación temprana o hermanos de egresados anteriores.",
+  vigencia: "Hasta cuándo la empresa garantiza este precio. Después puede actualizarlo.",
 };
 
 // === TOOLTIP (mobile-friendly: tap para abrir, cierra al tap-out) ===
@@ -317,7 +317,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
             <div className="flex items-center gap-1.5 mb-1">
               <Calculator className="w-3 h-3 text-primary" strokeWidth={2.2} />
               <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold">
-                <Tooltip text={GLOSARIO.cuotaMensual} label="Pagás por mes" />
+                <Tooltip text={GLOSARIO.cuotaMensual} label="Cuota mensual" />
               </p>
             </div>
             <p className="text-4xl sm:text-5xl font-bold leading-none tracking-tight tabular-nums text-foreground">{fmt(plan.Cuota_Mensual)}</p>
@@ -337,7 +337,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
         {!hasMonthlyPayments && plan.Cantidad_Cuotas === 1 && (
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold mb-1">
-              <Tooltip text={GLOSARIO.contado} label="Pago único" />
+              <Tooltip text={GLOSARIO.contado} label="Pago contado" />
             </p>
             <p className="text-3xl sm:text-4xl font-bold leading-none tracking-tight tabular-nums text-foreground">{fmt(plan.Total_Final || upfront)}</p>
             <p className="text-[12px] sm:text-[13px] text-foreground/75 mt-1.5">Todo en un solo pago al firmar</p>
@@ -753,8 +753,8 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
         {/* STEP 0: Duración */}
         {step === 0 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">¿Cuántos días de viaje?</h2>
-            <p className="text-muted-foreground text-sm mb-5">Elegí la duración del viaje de egresados</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">Elegí la duración</h2>
+            <p className="text-muted-foreground text-sm mb-5">Lo estándar es 4 a 7 noches, pero hay opciones para todos los bolsillos.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {duracionOptions.map(d => {
                 // Count destinations and companies for this duration
@@ -790,7 +790,7 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
             <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Cambiar duración
             </button>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">¿A dónde quieren ir?</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">Elegí el destino</h2>
             <p className="text-muted-foreground text-sm mb-5">
               Destinos disponibles para viajes de <span className="font-semibold text-foreground">{duracion && duracion.replace("|", " días · ")} noches</span>
             </p>
@@ -840,7 +840,7 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
             <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Atrás
             </button>
-            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">Opciones de menor a mayor precio</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">Tu comparativa</h2>
             <div className="flex flex-wrap items-center gap-2 mb-5">
               {duracion && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-foreground rounded-full text-sm font-semibold">
@@ -859,7 +859,7 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
                 <Search className="w-3.5 h-3.5" /> Nueva búsqueda
               </button>
             </div>
-            <p className="text-muted-foreground text-sm mb-4">{resultCards.length} {resultCards.length === 1 ? "opción encontrada" : "opciones encontradas"}, ordenadas por cuota más baja</p>
+            <p className="text-muted-foreground text-sm mb-4">{resultCards.length} {resultCards.length === 1 ? "propuesta encontrada" : "propuestas encontradas"}, ordenadas por cuota más baja</p>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-6">
               {resultCards.map(g => (
                 <DestinationCard
@@ -956,7 +956,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
     return (
       <div className="flex items-center justify-center gap-2 px-4 py-3.5 bg-secondary/20 border-2 border-secondary rounded-2xl text-primary font-semibold animate-[fadeIn_0.2s_ease-out]">
         <CheckCircle2 className="w-5 h-5 text-accent" />
-        <span>¡Voto registrado!</span>
+        <span>Listo, voto registrado</span>
       </div>
     );
   }
@@ -968,7 +968,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
         className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground font-bold rounded-2xl transition-all shadow-md hover:shadow-lg text-[15px]"
       >
         <Vote className="w-5 h-5" />
-        ¡Quiero este viaje!
+        Me interesa
       </button>
     );
   }
@@ -978,7 +978,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       {/* Step 1: Nombre */}
       {step === 1 && (
         <>
-          <p className="text-[13px] text-primary font-semibold">① Ingresá tu nombre</p>
+          <p className="text-[13px] text-primary font-semibold">① ¿Cómo te llamás?</p>
           <div className="flex items-center gap-2">
             <input
               type="text"
@@ -1003,9 +1003,9 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       {/* Step 2: Prioridad */}
       {step === 2 && (
         <>
-          <p className="text-[13px] text-primary font-semibold">② ¿Qué preferencia es este viaje?</p>
+          <p className="text-[13px] text-primary font-semibold">② ¿Qué lugar ocupa en tu ranking?</p>
           <div className="space-y-1.5">
-            {[{n:1, label:"1ra opción", desc:"Mi primera elección", color:"bg-accent"}, {n:2, label:"2da opción", desc:"Mi segunda elección", color:"bg-secondary"}, {n:3, label:"3ra opción", desc:"Mi tercera elección", color:"bg-accent/60"}].map(({n, label, desc, color}) => (
+            {[{n:1, label:"1ra opción", desc:"El que más me gusta", color:"bg-accent"}, {n:2, label:"2da opción", desc:"Un buen plan B", color:"bg-secondary"}, {n:3, label:"3ra opción", desc:"Por si no quedan los de arriba", color:"bg-accent/60"}].map(({n, label, desc, color}) => (
               <button
                 key={n}
                 onClick={() => { setPrioridad(n); setStep(planOptions.length > 0 ? 3 : 4); }}
@@ -1023,13 +1023,13 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       {/* Step 3: Elegir plan de pago */}
       {step === 3 && (
         <>
-          <p className="text-[13px] text-primary font-semibold">③ Elegí forma de pago <span className="font-normal text-primary/70">(opcional)</span></p>
+          <p className="text-[13px] text-primary font-semibold">③ ¿Te copa algún plan de pago? <span className="font-normal text-primary/70">(opcional)</span></p>
           <div className="space-y-1.5 max-h-40 overflow-y-auto">
             <button
               onClick={() => { setSelectedPlan(null); setStep(4); }}
               className={`w-full text-left px-3 py-2 rounded-lg border text-[13px] transition-colors ${!selectedPlan ? "border-primary bg-secondary/30" : "border-border bg-card hover:bg-secondary/20"}`}
             >
-              <span className="text-muted-foreground">Sin preferencia</span>
+              <span className="text-muted-foreground">Me da lo mismo</span>
             </button>
             {planOptions.map((p, i) => (
               <button
@@ -1052,12 +1052,12 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       {/* Step 4: Confirmar */}
       {step === 4 && (
         <>
-          <p className="text-[13px] text-primary font-semibold">{planOptions.length > 0 ? "④" : "③"} Confirmar voto</p>
+          <p className="text-[13px] text-primary font-semibold">{planOptions.length > 0 ? "④" : "③"} Confirmá tu voto</p>
           <div className="bg-card rounded-lg px-3 py-2 text-[13px] space-y-0.5">
-            <p className="text-foreground"><span className="font-semibold">Nombre:</span> {nombre}</p>
-            <p className="text-foreground"><span className="font-semibold">Preferencia:</span> {prioridad === 1 ? "1ra opción" : prioridad === 2 ? "2da opción" : "3ra opción"}</p>
-            <p className="text-foreground"><span className="font-semibold">Viaje:</span> {empresa} → {destino}</p>
-            {duracion && <p className="text-foreground"><span className="font-semibold">Duración:</span> {duracion.replace("|", "d/")}n</p>}
+            <p className="text-foreground"><span className="font-semibold">Vota como:</span> {nombre}</p>
+            <p className="text-foreground"><span className="font-semibold">Tu ranking:</span> {prioridad === 1 ? "1ra opción" : prioridad === 2 ? "2da opción" : "3ra opción"}</p>
+            <p className="text-foreground"><span className="font-semibold">Elegiste:</span> {empresa} → {destino}</p>
+            {duracion && <p className="text-foreground"><span className="font-semibold">Para:</span> {duracion.replace("|", "d/")}n</p>}
             {selectedPlan && (
               <p className="text-foreground">
                 <span className="font-semibold">Plan:</span> {selectedPlan.plan_pago} · Total {fmtPrice(selectedPlan.total_final)}
@@ -1078,7 +1078,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
               className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground font-bold rounded-xl transition-colors text-[15px]"
             >
               <Send className="w-4 h-4" />
-              {sending ? "..." : "Confirmar voto"}
+              {sending ? "..." : "Registrar mi voto"}
             </button>
           </div>
         </>
@@ -1260,11 +1260,11 @@ function VotingResults() {
       </div>
 
       {loadingVotos ? (
-        <p className="text-muted-foreground text-sm py-8 text-center">Cargando votos...</p>
+        <p className="text-muted-foreground text-sm py-8 text-center">Cargando resultados...</p>
       ) : byDestino.length === 0 ? (
         <div className="text-center py-12 bg-card border border-border rounded-2xl">
           <Vote className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
-          <p className="text-muted-foreground text-sm">Todavía no hay votos. ¡Sé el primero!</p>
+          <p className="text-muted-foreground text-sm">Todavía nadie votó. Sé el primero.</p>
         </div>
       ) : (
         <>
@@ -1294,7 +1294,7 @@ function VotingResults() {
             <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Star className="w-4 h-4 text-primary/70" />
-                <h4 className="font-semibold text-foreground text-[15px]">Votos por orden de preferencia</h4>
+                <h4 className="font-semibold text-foreground text-[15px]">Cómo se reparten los votos</h4>
               </div>
               <BarList items={byPrioridad} color="bg-primary" />
             </div>
@@ -1323,7 +1323,7 @@ function VotingResults() {
             <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <CreditCard className="w-4 h-4 text-accent" />
-                <h4 className="font-semibold text-foreground text-[15px]">Por forma de pago</h4>
+                <h4 className="font-semibold text-foreground text-[15px]">Por plan de pago</h4>
               </div>
               <BarList items={byPlanPago} color="bg-accent" />
             </div>
@@ -1334,7 +1334,7 @@ function VotingResults() {
             <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-4 h-4 text-primary" />
-                <h4 className="font-semibold text-foreground text-[15px]">Por costo total elegido</h4>
+                <h4 className="font-semibold text-foreground text-[15px]">Por precio total</h4>
               </div>
               <BarList items={byCostoTotal} color="bg-primary" />
             </div>
@@ -1345,7 +1345,7 @@ function VotingResults() {
             <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <DollarSign className="w-4 h-4 text-destructive" />
-                <h4 className="font-semibold text-foreground text-[15px]">Por cuota mensual elegida</h4>
+                <h4 className="font-semibold text-foreground text-[15px]">Por cuota mensual</h4>
               </div>
               <BarList items={byCuota} color="bg-destructive" />
             </div>
@@ -1356,7 +1356,7 @@ function VotingResults() {
       {/* Últimos votos */}
       {votos.length > 0 && (
         <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
-          <p className="text-[10.5px] uppercase tracking-[0.2em] text-muted-foreground font-bold mb-3">Últimos votos</p>
+          <p className="text-[10.5px] uppercase tracking-[0.2em] text-muted-foreground font-bold mb-3">Votos recientes</p>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {votos.slice(0, 15).map(v => (
               <div key={v.id} className="flex items-center gap-x-2 text-[13px]">
@@ -1583,7 +1583,7 @@ export default function App() {
             Viajes de <em className="text-foreground">egresados</em>
           </h1>
           <p className="text-muted-foreground max-w-2xl text-[14px] sm:text-base leading-relaxed">
-            Compará cuotas mensuales, formas de pago y duración. Tocá cualquier ícono <Info className="inline w-3.5 h-3.5 align-text-bottom" /> para ver una explicación en términos simples.
+            Compará cuotas, planes de pago y duración de un vistazo. Tocá el <Info className="inline w-3.5 h-3.5 align-text-bottom" /> junto a cada término para entender qué significa.
           </p>
 
           {/* ESTADO DE VOTACIÓN — explícito qué prioridades ya votó la familia */}
@@ -1751,11 +1751,11 @@ export default function App() {
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="gap-2">
                 <Wand2 className="w-4 h-4" />
-                Te ayudamos a elegir
+                Te ayudamos a elegir el viaje
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-              <DialogTitle className="text-2xl font-bold">Encontrá el viaje ideal</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">Encontrá tu viaje ideal</DialogTitle>
               <WizardView
                 groupedDestinations={groupedDestinations}
                 defaultNombre={familia}
@@ -1770,15 +1770,15 @@ export default function App() {
         {/* Banner explicito de filtrado por ciudad (cuando aplica) */}
         {filteredByCiudad && sortedByPrice.length === 0 && (
           <div className="rounded-xl border border-accent/40 bg-accent/10 px-4 py-3 mb-6 text-sm">
-            <p className="font-semibold text-foreground">Todavía no hay empresas operando desde tu ciudad.</p>
+            <p className="font-semibold text-foreground">Todavía no hay empresas en tu ciudad.</p>
             <p className="text-muted-foreground text-[13px] mt-1">
-              Estamos sumando empresas. Apenas haya una propuesta para tu ciudad te avisamos por mail.
+              Estamos sumando propuestas. Apenas haya alguna para tu ciudad, te avisamos por mail.
             </p>
           </div>
         )}
         {filteredByCiudad && sortedByPrice.length > 0 && (
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground font-bold mb-3">
-            Mostrando empresas que operan desde tu ciudad
+            Mostrando las empresas que viajan desde tu ciudad
           </p>
         )}
 

@@ -158,7 +158,7 @@ function Thread({ empresaId, empresaNombre, grupoId, familiaId, familiaNombre, o
               </div>
             </li>
           ))}
-          {mensajes.length === 0 && <li className="text-xs text-muted-foreground text-center py-6">No hay mensajes todavía.</li>}
+          {mensajes.length === 0 && <li className="text-xs text-muted-foreground text-center py-6">Todavía no hay mensajes. Mandá la primera pregunta.</li>}
         </ul>
       </ScrollArea>
       <div className="flex gap-2">
@@ -166,7 +166,7 @@ function Thread({ empresaId, empresaNombre, grupoId, familiaId, familiaNombre, o
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
-          placeholder="Escribí un mensaje…"
+          placeholder="Escribí tu mensaje…"
           rows={2}
           className="resize-none"
         />

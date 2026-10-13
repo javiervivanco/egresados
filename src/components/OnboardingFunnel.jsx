@@ -248,7 +248,7 @@ function Landing({ onStart }) {
           Mirá las opciones disponibles
         </h2>
         <p className="text-muted-foreground text-sm text-center mb-6 max-w-2xl mx-auto">
-          Estos son los destinos a los que viajan los grupos de egresados. <strong>Los precios y cuotas se desbloquean cuando completás tu registro</strong> — así sabés qué propuesta te conviene a vos y a tu grupo.
+          Estos son los destinos a los que viajan los grupos de egresados. <strong>Los precios y cuotas se desbloquean cuando completás tu registro</strong>, así sabés qué propuesta le conviene a tu grupo.
         </p>
         {destinos.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-6">
@@ -272,7 +272,7 @@ function Landing({ onStart }) {
         <CardContent className="p-6 sm:p-8 text-center">
           <CardTitle className="text-xl sm:text-2xl font-semibold mb-2">Desbloqueá los precios</CardTitle>
           <CardDescription className="mb-5 max-w-md mx-auto">
-            Mail + teléfono + tu escuela: tres pasos para ver cuotas reales y empezar a comparar con tu grupo.
+            Mail, teléfono y tu escuela: tres pasos para ver las cuotas reales y empezar a comparar con tu grupo.
           </CardDescription>
           <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground mb-5 flex-wrap">
             <StepPreview n={1} label="Tu contacto" />
@@ -310,7 +310,7 @@ function ContactoStep({ defaultValues, error, onSubmit, onBack }) {
 
   return (
     <>
-      <StepHeader icon={Mail} title="Tu contacto" subtitle="Para avisarte de novedades sobre los viajes." />
+      <StepHeader icon={Mail} title="Tu contacto" subtitle="Te avisamos cuando haya novedades del viaje." />
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
           <FormField
@@ -362,7 +362,7 @@ function EscuelaStep({ mode = "buscar", escuelas, ciudades = [], search, setSear
 
   return (
     <>
-      <StepHeader icon={GraduationCap} title="Tu escuela" subtitle="Elegí tu colegio o avisanos si no está en la lista." />
+      <StepHeader icon={GraduationCap} title="Tu escuela" subtitle="Buscá tu colegio. Si no está, lo agregamos al toque." />
       {mode === "buscar" ? (
         <>
           <div className="relative mb-3">
@@ -480,7 +480,7 @@ function GrupoStep({ state, escuela, grupos, grupo, defaultApellido, submitting,
   if (showGrupoPicker) {
     return (
       <>
-        <StepHeader icon={Users} title="¿Qué grado?" subtitle={escuela.nombre} />
+        <StepHeader icon={Users} title="¿Qué grado son?" subtitle={escuela.nombre} />
         {state === STATES.GRUPO_CREAR || grupos.length === 0 ? (
           <Form {...grupoForm}>
             <form onSubmit={grupoForm.handleSubmit(onCreateGrupo)} className="space-y-3">
@@ -542,7 +542,7 @@ function GrupoStep({ state, escuela, grupos, grupo, defaultApellido, submitting,
           />
           {error && <p className="text-destructive text-sm">{error}</p>}
           <Button type="submit" className="w-full font-bold" disabled={submitting}>
-            {submitting ? "Guardando…" : <>Empezar a comparar <ArrowRight className="w-4 h-4" /></>}
+            {submitting ? "Guardando…" : <>Empezar a comparar<ArrowRight className="w-4 h-4" /></>}
           </Button>
         </form>
       </Form>
@@ -647,7 +647,7 @@ function InvitacionStep({ grupoId, escuelaNombre, grado, apellido, esNuevaFamili
 function LegacyForm({ value, onChange, onSubmit }) {
   return (
     <CardShell>
-      <StepHeader icon={Users} title="¡Hola!" subtitle="¿De qué familia o alumno/a estamos viendo viajes?" />
+      <StepHeader icon={Users} title="¡Hola!" subtitle="¿De qué familia o alumno/a estamos mirando los viajes?" />
       <div className="space-y-3">
         <Input
           value={value}
