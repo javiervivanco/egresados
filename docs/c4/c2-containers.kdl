@@ -33,7 +33,7 @@ title "Egresados — Vista de Contenedores (C2)"
     }
 
     (container-db)db "PostgreSQL" "Postgres 15 + RLS" {
-        descr "Fuente de verdad. Tablas: escuelas, grupos, familias, alumnos, empresas, destinos, planes_viaje, documentos, fechas_reunion, votos_fecha, votos_plan, mensajes, ventas, profiles, leads, eventos_anon, invitaciones_grupo, familia_miembros. RLS activo en todas las tablas con helpers is_super_admin()/is_empresa_admin()/current_familia_id()/current_familia_in_grupo()."
+        descr "Fuente de verdad. Tablas: escuelas, grupos (con `invitacion_token` + `invitacion_expira_at`, migration 0013), familias, alumnos, familia_miembros, empresas, destinos, planes_viaje (con `origen_ciudad_id`, migration 0015), documentos, fechas_reunion, votos_fecha, votos_plan, mensajes, ventas, profiles, leads, lead_actividades, eventos_anon, correcciones, ciudades, empresas_origenes + las legacy `planes`/`votos`. RLS activo en todas las tablas con helpers is_super_admin()/is_empresa_admin()/current_familia_id()/current_familia_in_grupo()."
         tags "datos" "core"
     }
 

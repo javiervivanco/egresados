@@ -60,7 +60,7 @@ title "Egresados — Modelo de Datos (C3 del container PostgreSQL)"
     (component-boundary)growth "Crecimiento y soporte" {
 
         (component-db)crm "CRM de leads" "leads/lead_actividades" {
-            descr "Leads pre-identidad (familia aún no registrada). `lead_actividades` registra interacciones. Conversión a familia via RPC `lead_to_familia` (migrations 0005-0007). Captura UTM y datos de origen del tráfico."
+            descr "Leads pre-identidad (familia aún no registrada). `lead_actividades` registra interacciones. Conversión a familia via RPC `lead_to_familia` (migration 0018) — wrapper de `familia_unirse` (0014) + `lead_upsert` (0006/0010) + trigger `leads_track_conversion` (0007). Captura UTM y datos de origen del tráfico."
         }
 
         (component-db)marketing "Marketing / Atribución" "eventos_anon" {
@@ -88,7 +88,7 @@ title "Egresados — Modelo de Datos (C3 del container PostgreSQL)"
     clientes to votacion-planes "votos_plan.familia_id → familias.id" "FK"
     clientes to mensajeria "mensajes.grupo_id → grupos.id" "FK"
     crm to clientes "leads → familia via RPC de conversión" "FK"
-    oferta to geo "planes_via.origen_ciudad_id → ciudades.id" "FK"
+    oferta to geo "planes_viaje.origen_ciudad_id → ciudades.id" "FK"
     oferta to votacion-fechas "fechas_reunion.empresa_id → empresas.id" "FK"
     oferta to votacion-planes "votos_plan.plan_id → planes_viaje.id" "FK"
     oferta to ventas "ventas.plan_id → planes_viaje.id" "FK"

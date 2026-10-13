@@ -24,7 +24,7 @@ ComponentDb("mensajeria", "Mensajería", "mensajes", $descr="Hilos empresa↔gru
 ComponentDb("ventas", "Ventas y comisiones", "ventas", $descr="Cierre del funnel. `monto_total` y `comision_monto` son generated columns. `comision_pct` se setea via trigger desde `empresas.comision_pct_default` si no se pasa explícito. Estados: borrador → confirmada → pagada → liquidada + cancelada (timestamps estampados por trigger). `unique index` parcial `(grupo_id) WHERE estado ∈ activa` impide que un grupo quede cerrado con dos empresas.")
 }
 Boundary("growth", "Crecimiento y soporte") {
-ComponentDb("crm", "CRM de leads", "leads/lead_actividades", $descr="Leads pre-identidad (familia aún no registrada). `lead_actividades` registra interacciones. Conversión a familia via RPC `lead_to_familia` (migrations 0005-0007). Captura UTM y datos de origen del tráfico.")
+ComponentDb("crm", "CRM de leads", "leads/lead_actividades", $descr="Leads pre-identidad (familia aún no registrada). `lead_actividades` registra interacciones. Conversión a familia via RPC `lead_to_familia` (migration 0018) — wrapper de `familia_unirse` (0014) + `lead_upsert` (0006/0010) + trigger `leads_track_conversion` (0007). Captura UTM y datos de origen del tráfico.")
 ComponentDb("marketing", "Marketing / Atribución", "eventos_anon", $descr="Eventos anónimos para entender el funnel discovery→registro. Permite atribuir conversiones a campañas sin necesidad de auth. Alimenta el dashboard de conversión y la decisión de inversión en ads.")
 ComponentDb("correcciones", "Correcciones reportadas", "correcciones", $descr="Reportes de usuarios sobre errores en cualquier entidad (planes con precio mal cargado, destinos con datos erróneos, etc). Triage del super-admin o del empresa-admin dueño. Sin SLA formal, capturado para revisión manual.")
 ComponentDb("legacy", "Espejos legacy", "planes/votos", $descr="Tablas planas (`planes`, `votos`) que mirrorean los datos JSON originales pre-multi-tenant. No se insertan filas nuevas. `votos` sigue siendo la fuente de `VotingResults` hasta migrar a `votos_plan` joinado con familias. `planes` es histórico. Eventual deprecación.")
@@ -36,7 +36,7 @@ Rel("clientes", "votacion_fechas", "fechas_reunion.grupo_id → grupos.id")
 Rel("clientes", "votacion_planes", "votos_plan.familia_id → familias.id")
 Rel("clientes", "mensajeria", "mensajes.grupo_id → grupos.id")
 Rel("crm", "clientes", "leads → familia via RPC de conversión")
-Rel("oferta", "geo", "planes_via.origen_ciudad_id → ciudades.id")
+Rel("oferta", "geo", "planes_viaje.origen_ciudad_id → ciudades.id")
 Rel("oferta", "votacion_fechas", "fechas_reunion.empresa_id → empresas.id")
 Rel("oferta", "votacion_planes", "votos_plan.plan_id → planes_viaje.id")
 Rel("oferta", "ventas", "ventas.plan_id → planes_viaje.id")
