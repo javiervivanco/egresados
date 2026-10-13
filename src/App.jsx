@@ -170,7 +170,7 @@ function GuideBanner() {
           </div>
           <div>
             <p className="text-[10px] uppercase tracking-[0.2em] text-info font-bold">Guía rápida</p>
-            <h3 className="font-sans italic text-xl text-foreground leading-tight">¿Cómo leer esta comparativa?</h3>
+            <h3 className="text-xl font-semibold text-foreground leading-tight">¿Cómo leer esta comparativa?</h3>
           </div>
         </div>
         <span className="flex items-center gap-1.5 text-sm text-info font-semibold">
@@ -306,7 +306,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
         </div>
 
         {/* destino headline */}
-        <h3 className="font-sans italic text-2xl sm:text-3xl text-foreground leading-tight tracking-tight flex items-start gap-1.5 sm:gap-2 mb-4 sm:mb-5">
+        <h3 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight tracking-tight flex items-start gap-1.5 sm:gap-2 mb-4 sm:mb-5">
           <MapPin className="w-5 h-5 sm:w-6 sm:h-6 text-accent mt-0.5 sm:mt-1 shrink-0" strokeWidth={1.8} />
           <span className="break-words">{destino}</span>
         </h3>
@@ -320,7 +320,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
                 <Tooltip text={GLOSARIO.cuotaMensual} label="Pagás por mes" />
               </p>
             </div>
-            <p className="font-sans italic text-4xl sm:text-5xl font-bold leading-none tracking-tight text-foreground">{fmt(plan.Cuota_Mensual)}</p>
+            <p className="text-4xl sm:text-5xl font-bold leading-none tracking-tight tabular-nums text-foreground">{fmt(plan.Cuota_Mensual)}</p>
             <p className="text-[12px] sm:text-[13px] text-foreground/75 mt-1.5 sm:mt-2 leading-snug">
               Durante <span className="font-bold text-foreground">{cuotasRestantes} {cuotasRestantes === 1 ? "mes" : "meses"}</span>
               {hasPrimeraCuotaDistinta ? " después de la primera" : ""}
@@ -339,7 +339,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
             <p className="text-[10px] uppercase tracking-[0.18em] text-primary font-bold mb-1">
               <Tooltip text={GLOSARIO.contado} label="Pago único" />
             </p>
-            <p className="font-sans italic text-3xl sm:text-4xl font-bold leading-none tracking-tight text-foreground">{fmt(plan.Total_Final || upfront)}</p>
+            <p className="text-3xl sm:text-4xl font-bold leading-none tracking-tight tabular-nums text-foreground">{fmt(plan.Total_Final || upfront)}</p>
             <p className="text-[12px] sm:text-[13px] text-foreground/75 mt-1.5">Todo en un solo pago al firmar</p>
           </div>
         )}
@@ -430,7 +430,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
                   ].filter(Boolean).join(" + ")}
                 </p>
               </div>
-              <p className="font-sans italic text-base sm:text-lg font-semibold leading-none shrink-0 text-foreground">{fmt(upfront)}</p>
+              <p className="text-base sm:text-lg font-semibold leading-none shrink-0 tabular-nums text-foreground">{fmt(upfront)}</p>
             </div>
           )}
           {hasAnticipo && (
@@ -441,7 +441,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
                 </p>
                 <p className="text-[10.5px] text-muted-foreground">aparte de las cuotas</p>
               </div>
-              <p className="font-sans italic text-base sm:text-lg font-semibold leading-none shrink-0 text-foreground">{fmt(plan.Anticipo_Saldo)}</p>
+              <p className="text-base sm:text-lg font-semibold leading-none shrink-0 tabular-nums text-foreground">{fmt(plan.Anticipo_Saldo)}</p>
             </div>
           )}
           {plan.Total_Final && (
@@ -450,14 +450,14 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
                 <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
                   <Tooltip text={GLOSARIO.totalFinal} label="Total del viaje" />
                 </p>
-                <p className="font-sans italic text-lg sm:text-xl font-semibold text-foreground leading-none">{fmt(plan.Total_Final)}</p>
+                <p className="text-lg sm:text-xl font-semibold text-foreground leading-none tabular-nums">{fmt(plan.Total_Final)}</p>
               </div>
               {showContadoRef && (
                 <div className="flex items-baseline justify-between gap-3">
                   <p className="text-[10.5px] sm:text-[11px] text-muted-foreground">
                     <Tooltip text={GLOSARIO.contado} label="Si pagás de contado" />
                   </p>
-                  <p className="font-sans italic text-sm sm:text-base font-semibold text-foreground">{fmt(planContado.Total_Final)}</p>
+                  <p className="text-sm sm:text-base font-semibold text-foreground tabular-nums">{fmt(planContado.Total_Final)}</p>
                 </div>
               )}
             </div>
@@ -753,7 +753,7 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
         {/* STEP 0: Duración */}
         {step === 0 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
-            <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">¿Cuántos días de viaje?</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">¿Cuántos días de viaje?</h2>
             <p className="text-muted-foreground text-sm mb-5">Elegí la duración del viaje de egresados</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {duracionOptions.map(d => {
@@ -790,7 +790,7 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
             <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Cambiar duración
             </button>
-            <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">¿A dónde quieren ir?</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">¿A dónde quieren ir?</h2>
             <p className="text-muted-foreground text-sm mb-5">
               Destinos disponibles para viajes de <span className="font-semibold text-foreground">{duracion && duracion.replace("|", " días · ")} noches</span>
             </p>
@@ -840,7 +840,7 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
             <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Atrás
             </button>
-            <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">Opciones de menor a mayor precio</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight mb-1">Opciones de menor a mayor precio</h2>
             <div className="flex flex-wrap items-center gap-2 mb-5">
               {duracion && (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-foreground rounded-full text-sm font-semibold">
@@ -1254,7 +1254,7 @@ function VotingResults() {
           <BarChart3 className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h3 className="font-sans italic text-2xl text-foreground">Resultados</h3>
+          <h3 className="text-2xl font-bold text-foreground">Resultados</h3>
           <p className="text-[12px] text-muted-foreground">{totalVotos} {totalVotos === 1 ? "voto" : "votos"} hasta ahora</p>
         </div>
       </div>
@@ -1579,7 +1579,7 @@ export default function App() {
               </div>
             )}
           </div>
-          <h1 className="font-sans italic text-3xl sm:text-4xl lg:text-5xl text-foreground tracking-tight leading-none mb-2.5 sm:mb-4">
+          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground tracking-tight leading-none mb-2.5 sm:mb-4">
             Viajes de <em className="text-foreground">egresados</em>
           </h1>
           <p className="text-muted-foreground max-w-2xl text-[14px] sm:text-base leading-relaxed">
@@ -1755,7 +1755,7 @@ export default function App() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-              <DialogTitle className="font-sans italic text-2xl">Encontrá el viaje ideal</DialogTitle>
+              <DialogTitle className="text-2xl font-bold">Encontrá el viaje ideal</DialogTitle>
               <WizardView
                 groupedDestinations={groupedDestinations}
                 defaultNombre={familia}
@@ -1787,7 +1787,7 @@ export default function App() {
           <div>
             <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-border">
               <Wallet className="w-5 h-5 text-foreground shrink-0 self-center" strokeWidth={1.8} />
-              <h2 className="font-sans italic text-3xl text-foreground tracking-tight">De menor a mayor cuota mensual</h2>
+              <h2 className="text-3xl font-bold text-foreground tracking-tight">De menor a mayor cuota mensual</h2>
               <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-bold ml-auto">
                 {sortedByPrice.length} tarjetas
               </span>
@@ -1815,7 +1815,7 @@ export default function App() {
               <section key={provincia}>
                 <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-border">
                   <MapPin className="w-5 h-5 text-foreground shrink-0 self-center" strokeWidth={1.8} />
-                  <h2 className="font-sans italic text-3xl text-foreground tracking-tight">{provincia}</h2>
+                  <h2 className="text-3xl font-bold text-foreground tracking-tight">{provincia}</h2>
                   <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-bold ml-auto">
                     {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                   </span>
@@ -1847,7 +1847,7 @@ export default function App() {
                 <section key={empresa}>
                   <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-border">
                     <span className={`w-3 h-3 rounded-full ${accent.dot} self-center shrink-0`} />
-                    <h2 className={`font-sans italic text-3xl tracking-tight ${accent.text}`}>{empresa}</h2>
+                    <h2 className={`text-3xl font-bold tracking-tight ${accent.text}`}>{empresa}</h2>
                     <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-bold ml-auto">
                       {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                     </span>

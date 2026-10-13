@@ -53,7 +53,7 @@ export default function Messaging({ familiaId, grupoId, familiaNombre }) {
       <CollapsibleTrigger className="w-full flex items-center gap-3 px-4 sm:px-5 py-3 hover:bg-foreground/5 transition-colors text-left">
         <MessageSquare className="w-5 h-5 text-foreground" />
         <div className="flex-1">
-          <h3 className="font-sans italic text-lg text-foreground">Mensajes con empresas</h3>
+          <h3 className="text-lg font-semibold text-foreground">Mensajes con empresas</h3>
           <p className="text-xs text-muted-foreground">
             {empresas.length} {empresas.length === 1 ? "empresa en contacto" : "empresas en contacto"}
             {totalSinLeer > 0 && <> · <strong className="text-destructive">{totalSinLeer} sin leer</strong></>}

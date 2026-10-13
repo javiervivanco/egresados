@@ -107,7 +107,7 @@ export default function FunnelStatus({ familiaId, grupoId, onAccion, onEtapa }) 
         <CardContent className="px-4 sm:px-6 py-5 sm:py-6">
           <div className="flex flex-col sm:flex-row sm:items-center gap-4">
             <div className="flex-1">
-              <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground leading-tight mb-1">
+              <h2 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight mb-1">
                 {etapa.titulo}
               </h2>
               {etapa.subtitulo && (

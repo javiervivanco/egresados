@@ -67,7 +67,7 @@ export default function MeetingDateVoting({ familiaId, grupoId }) {
         <div className="flex items-center gap-2">
           <CalendarClock className="w-5 h-5 text-destructive" />
           <div>
-            <CardTitle className="font-sans italic text-lg">Reuniones propuestas</CardTitle>
+            <CardTitle className="text-lg font-semibold">Reuniones propuestas</CardTitle>
             <CardDescription>Elegí qué fechas te quedan bien. Las empresas ven los votos para confirmar.</CardDescription>
           </div>
         </div>

@@ -171,7 +171,7 @@ function Header() {
   return (
     <div className="text-center mb-8 sm:mb-12">
       <Badge variant="outline" className="bg-card text-primary border-primary/30 uppercase tracking-[0.25em] mb-3">Comparativa 2026</Badge>
-      <h1 className="font-sans italic text-3xl sm:text-5xl lg:text-6xl text-foreground tracking-tight leading-tight mb-3 sm:mb-4">
+      <h1 className="text-3xl sm:text-5xl lg:text-6xl font-bold text-foreground tracking-tight leading-tight mb-3 sm:mb-4">
         Viajes de <em className="text-primary">egresados</em>
       </h1>
       <p className="text-muted-foreground max-w-2xl mx-auto text-[15px] sm:text-base leading-relaxed">
@@ -214,7 +214,7 @@ function StepHeader({ icon: Icon, title, subtitle }) {
       <div className="w-14 h-14 rounded-full bg-secondary/30 flex items-center justify-center mx-auto mb-3">
         <Icon className="w-7 h-7 text-primary" />
       </div>
-      <CardTitle className="font-sans italic text-2xl text-foreground mb-1">{title}</CardTitle>
+      <CardTitle className="text-2xl font-semibold text-foreground mb-1">{title}</CardTitle>
       <CardDescription>{subtitle}</CardDescription>
     </div>
   );
@@ -244,7 +244,7 @@ function Landing({ onStart }) {
   return (
     <div className="space-y-8">
       <section>
-        <h2 className="font-sans italic text-xl sm:text-2xl text-foreground text-center mb-2">
+        <h2 className="text-xl sm:text-2xl font-semibold text-foreground text-center mb-2">
           Mirá las opciones disponibles
         </h2>
         <p className="text-muted-foreground text-sm text-center mb-6 max-w-2xl mx-auto">
@@ -270,7 +270,7 @@ function Landing({ onStart }) {
 
       <Card className="shadow-lg border-primary/30">
         <CardContent className="p-6 sm:p-8 text-center">
-          <CardTitle className="font-sans italic text-xl sm:text-2xl mb-2">Desbloqueá los precios</CardTitle>
+          <CardTitle className="text-xl sm:text-2xl font-semibold mb-2">Desbloqueá los precios</CardTitle>
           <CardDescription className="mb-5 max-w-md mx-auto">
             Mail + teléfono + tu escuela: tres pasos para ver cuotas reales y empezar a comparar con tu grupo.
           </CardDescription>
@@ -598,7 +598,7 @@ function InvitacionStep({ grupoId, escuelaNombre, grado, apellido, esNuevaFamili
         <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center mx-auto mb-3">
           <Check className="w-7 h-7 text-primary-foreground" />
         </div>
-        <CardTitle className="font-sans italic text-2xl mb-1">
+        <CardTitle className="text-2xl font-semibold mb-1">
           {esNuevaFamilia ? "¡Listo, ya estás dentro!" : `Te sumaste a Familia ${apellido}`}
         </CardTitle>
         <CardDescription>

@@ -32,7 +32,7 @@ export default function VentaCerrada({ grupoId }) {
       </div>
       <div className="flex-1 min-w-[200px]">
         <p className="text-[10.5px] uppercase tracking-[0.2em] text-primary font-bold">Viaje confirmado</p>
-        <AlertTitle className="font-sans italic text-xl text-foreground mt-0.5">
+        <AlertTitle className="text-xl font-semibold text-foreground mt-0.5">
           Su grupo cerró con <em>{venta.empresas?.nombre}</em>
         </AlertTitle>
         <AlertDescription className="text-muted-foreground text-sm flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
