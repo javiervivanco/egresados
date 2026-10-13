@@ -99,7 +99,7 @@ export default function OnboardingFunnel({ onReady, invitacionToken = null }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-secondary/20 via-background to-accent/10">
-      <div className="h-1.5 bg-gradient-to-r from-orange-500 via-red-500 via-green-500 via-cyan-500 via-blue-500 to-fuchsia-500" />
+      <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-secondary" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-16">
         <Header />
         {bootLoading ? (
@@ -624,7 +624,7 @@ function InvitacionStep({ grupoId, escuelaNombre, grado, apellido, esNuevaFamili
       </div>
 
       <a href={url ? waUrl : "#"} target="_blank" rel="noopener noreferrer" className="block">
-        <Button className="w-full font-bold bg-[#25D366] hover:bg-[#1da851] text-white" disabled={!url}>
+        <Button className="w-full font-bold bg-whatsapp hover:bg-whatsapp/85 text-whatsapp-foreground" disabled={!url}>
           <Share2 className="w-4 h-4" />
           Compartir por WhatsApp
         </Button>

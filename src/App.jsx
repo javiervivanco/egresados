@@ -77,9 +77,9 @@ function getPaymentTip(plan) {
 // === HELP TIP ===
 function HelpTip({ children }) {
   return (
-    <div className="flex gap-2 bg-sky-50 border border-sky-200 rounded-lg px-3.5 py-2.5">
-      <Lightbulb className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" strokeWidth={2.2} />
-      <p className="text-[12.5px] text-sky-900 leading-snug">{children}</p>
+    <div className="flex gap-2 bg-info/10 border border-info/30 rounded-lg px-3.5 py-2.5">
+      <Lightbulb className="w-4 h-4 text-info shrink-0 mt-0.5" strokeWidth={2.2} />
+      <p className="text-[12.5px] text-info leading-snug">{children}</p>
     </div>
   );
 }
@@ -127,7 +127,7 @@ function Tooltip({ text, label, align = "left", className = "" }) {
       {open && (
         <span
           role="tooltip"
-          className={`absolute z-30 ${boxAlign} top-full mt-1.5 w-64 max-w-[78vw] bg-stone-900 text-white text-[12px] font-normal normal-case tracking-normal leading-snug rounded-lg p-3 shadow-xl ring-1 ring-white/10`}
+          className={`absolute z-30 ${boxAlign} top-full mt-1.5 w-64 max-w-[78vw] bg-foreground text-background text-[12px] font-normal normal-case tracking-normal leading-snug rounded-lg p-3 shadow-xl ring-1 ring-white/10`}
         >
           {text}
         </span>
@@ -159,21 +159,21 @@ function GuideBanner() {
   ];
 
   return (
-    <div className="bg-white border border-sky-200 rounded-2xl overflow-hidden mb-8 shadow-sm">
+    <div className="bg-card border border-info/30 rounded-2xl overflow-hidden mb-8 shadow-sm">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-sky-50/60 transition-colors text-left"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-info/10/60 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-sky-100 flex items-center justify-center">
-            <BookOpen className="w-5 h-5 text-sky-700" strokeWidth={2} />
+          <div className="w-10 h-10 rounded-full bg-info/15 flex items-center justify-center">
+            <BookOpen className="w-5 h-5 text-info" strokeWidth={2} />
           </div>
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-sky-700 font-bold">Guía rápida</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-info font-bold">Guía rápida</p>
             <h3 className="font-sans italic text-xl text-foreground leading-tight">¿Cómo leer esta comparativa?</h3>
           </div>
         </div>
-        <span className="flex items-center gap-1.5 text-sm text-sky-700 font-semibold">
+        <span className="flex items-center gap-1.5 text-sm text-info font-semibold">
           {open ? "Ocultar" : "Ver guía"}
           {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </span>
@@ -182,11 +182,11 @@ function GuideBanner() {
       {open && (
         <div className="px-5 pb-5 pt-1 grid grid-cols-1 md:grid-cols-2 gap-3 animate-[fadeIn_0.25s_ease-out]">
           {items.map((item, i) => (
-            <div key={i} className="flex gap-3 p-3 bg-sky-50/70 border border-sky-100 rounded-xl">
-              <Lightbulb className="w-5 h-5 text-sky-600 shrink-0 mt-0.5" strokeWidth={2} />
+            <div key={i} className="flex gap-3 p-3 bg-info/10/70 border border-info/30 rounded-xl">
+              <Lightbulb className="w-5 h-5 text-info shrink-0 mt-0.5" strokeWidth={2} />
               <div>
-                <p className="font-semibold text-sky-950 text-sm mb-0.5">{item.title}</p>
-                <p className="text-[13px] text-sky-900/80 leading-relaxed">{item.desc}</p>
+                <p className="font-semibold text-info text-sm mb-0.5">{item.title}</p>
+                <p className="text-[13px] text-info/80 leading-relaxed">{item.desc}</p>
               </div>
             </div>
           ))}
@@ -282,7 +282,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
   const nextStep = () => ++stepCounter;
 
   return (
-    <div className="bg-white border-2 sm:border border-stone-300 sm:border-stone-200 rounded-2xl overflow-hidden shadow-md sm:shadow-sm hover:shadow-xl hover:border-stone-300 transition-all duration-300 flex flex-col">
+    <div className="bg-card border-2 sm:border border-border sm:border-border rounded-2xl overflow-hidden shadow-md sm:shadow-sm hover:shadow-xl hover:border-border transition-all duration-300 flex flex-col">
 
       {/* HERO — destino + precio grande arriba (metáfora Instagram: imagen primero) */}
       <div className="bg-secondary/30 text-foreground px-4 sm:px-6 pt-4 sm:pt-5 pb-4 sm:pb-5 relative overflow-hidden border-b border-secondary/40">
@@ -299,7 +299,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
             <span className={`w-2 h-2 rounded-full ${accent.dot} shrink-0`} />
             <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.22em] font-bold text-primary truncate">{empresa}</p>
           </div>
-          <div className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 bg-white/70 backdrop-blur rounded-md border border-primary/15 shrink-0">
+          <div className="flex items-center gap-1.5 px-2 py-1 sm:px-2.5 sm:py-1 bg-card/70 backdrop-blur rounded-md border border-primary/15 shrink-0">
             <TransIcon className="w-3.5 h-3.5 text-primary" strokeWidth={2} />
             <span className="text-[11.5px] sm:text-[12.5px] font-semibold text-primary">{plan.Transporte}</span>
           </div>
@@ -356,7 +356,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
       <div className="px-4 sm:px-6 pt-3.5 sm:pt-4 pb-2 space-y-3 sm:space-y-4">
         {hasDurations && durations.length > 1 && (
           <div>
-            <label className="text-xs font-bold text-stone-700 mb-2 flex items-center gap-1.5">
+            <label className="text-xs font-bold text-foreground mb-2 flex items-center gap-1.5">
               <CalendarClock className="w-3.5 h-3.5" />
               Cantidad de días del viaje
             </label>
@@ -370,7 +370,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
                     className={`px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-sm font-semibold rounded-lg transition-all ${
                       isActive
                         ? `${accent.bg} ${accent.text} ring-2 ${accent.ring} shadow-sm`
-                        : "bg-stone-100 text-stone-600 hover:bg-stone-200"
+                        : "bg-muted text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     {d.dias}d · {d.noches}n
@@ -383,14 +383,14 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
 
         {availablePlans.length > 0 && (
           <div>
-            <label className="text-xs font-bold text-stone-700 mb-2 flex items-center justify-between">
+            <label className="text-xs font-bold text-foreground mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5"><Wallet className="w-3.5 h-3.5" /> Forma de pago</span>
               {availablePlans.length > 1 && (
-                <span className="text-stone-400 font-normal">{availablePlans.length} opciones disponibles</span>
+                <span className="text-muted-foreground font-normal">{availablePlans.length} opciones disponibles</span>
               )}
             </label>
             {availablePlans.length === 1 ? (
-              <div className="w-full bg-stone-50 border-2 border-stone-200 rounded-xl px-4 py-3 text-[15px] font-semibold text-foreground">
+              <div className="w-full bg-muted border-2 border-border rounded-xl px-4 py-3 text-[15px] font-semibold text-foreground">
                 {plan.Plan_Pago || "Plan único"}
               </div>
             ) : (
@@ -398,13 +398,13 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
                 <select
                   value={selectedPlanIdx}
                   onChange={(e) => setSelectedPlanIdx(Number(e.target.value))}
-                  className="w-full appearance-none bg-white border-2 border-stone-300 rounded-xl pl-4 pr-10 py-3 text-[15px] font-semibold text-foreground focus:outline-none focus:border-foreground hover:border-stone-400 transition-colors cursor-pointer"
+                  className="w-full appearance-none bg-card border-2 border-border rounded-xl pl-4 pr-10 py-3 text-[15px] font-semibold text-foreground focus:outline-none focus:border-foreground hover:border-foreground/30 transition-colors cursor-pointer"
                 >
                   {availablePlans.map((p, i) => (
                     <option key={i} value={i}>{p.Plan_Pago}</option>
                   ))}
                 </select>
-                <ChevronDown className="w-5 h-5 text-stone-500 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <ChevronDown className="w-5 h-5 text-muted-foreground absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               </div>
             )}
           </div>
@@ -415,14 +415,14 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
 
       {/* BREAKDOWN — al firmar / anticipo / total (caption secundaria) */}
       {(upfront > 0 || hasAnticipo || plan.Total_Final) && (
-        <div className="mx-4 sm:mx-6 mt-2 mb-3 bg-stone-50 border border-stone-200 rounded-xl p-3.5 sm:p-4 space-y-2">
+        <div className="mx-4 sm:mx-6 mt-2 mb-3 bg-muted border border-border rounded-xl p-3.5 sm:p-4 space-y-2">
           {upfront > 0 && (
             <div className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                   <Tooltip text={GLOSARIO.alFirmar} label="Al firmar" />
                 </p>
-                <p className="text-[10.5px] text-stone-500 truncate">
+                <p className="text-[10.5px] text-muted-foreground truncate">
                   {[
                     inscripcion > 0 && "inscripción",
                     reserva > 0 && "reserva",
@@ -436,28 +436,28 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
           {hasAnticipo && (
             <div className="flex items-baseline justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold">
                   <Tooltip text={GLOSARIO.anticipo} label="Anticipo antes del viaje" />
                 </p>
-                <p className="text-[10.5px] text-stone-500">aparte de las cuotas</p>
+                <p className="text-[10.5px] text-muted-foreground">aparte de las cuotas</p>
               </div>
               <p className="font-sans italic text-base sm:text-lg font-semibold leading-none shrink-0 text-foreground">{fmt(plan.Anticipo_Saldo)}</p>
             </div>
           )}
           {plan.Total_Final && (
-            <div className="pt-2 border-t border-stone-200 space-y-1">
+            <div className="pt-2 border-t border-border space-y-1">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.14em] text-stone-500 font-semibold">
+                <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
                   <Tooltip text={GLOSARIO.totalFinal} label="Total del viaje" />
                 </p>
                 <p className="font-sans italic text-lg sm:text-xl font-semibold text-foreground leading-none">{fmt(plan.Total_Final)}</p>
               </div>
               {showContadoRef && (
                 <div className="flex items-baseline justify-between gap-3">
-                  <p className="text-[10.5px] sm:text-[11px] text-stone-500">
+                  <p className="text-[10.5px] sm:text-[11px] text-muted-foreground">
                     <Tooltip text={GLOSARIO.contado} label="Si pagás de contado" />
                   </p>
-                  <p className="font-sans italic text-sm sm:text-base font-semibold text-stone-700">{fmt(planContado.Total_Final)}</p>
+                  <p className="font-sans italic text-sm sm:text-base font-semibold text-foreground">{fmt(planContado.Total_Final)}</p>
                 </div>
               )}
             </div>
@@ -467,17 +467,17 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
 
       {/* DATOS DEL VIAJE — línea compacta */}
       {(plan.Dias || plan.Noches) && (
-        <div className="px-4 sm:px-6 pt-1 pb-3 sm:pb-4 flex items-center gap-4 text-[12.5px] text-stone-600">
+        <div className="px-4 sm:px-6 pt-1 pb-3 sm:pb-4 flex items-center gap-4 text-[12.5px] text-muted-foreground">
           {plan.Dias && (
             <span className="flex items-center gap-1.5">
-              <CalendarClock className="w-3.5 h-3.5 text-stone-500" />
-              <span className="font-semibold text-stone-800">{plan.Dias}</span> días
+              <CalendarClock className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="font-semibold text-foreground">{plan.Dias}</span> días
             </span>
           )}
           {plan.Noches && (
             <span className="flex items-center gap-1.5">
-              <Bed className="w-3.5 h-3.5 text-stone-500" />
-              <span className="font-semibold text-stone-800">{plan.Noches}</span> {plan.Noches === 1 ? "noche" : "noches"}
+              <Bed className="w-3.5 h-3.5 text-muted-foreground" />
+              <span className="font-semibold text-foreground">{plan.Noches}</span> {plan.Noches === 1 ? "noche" : "noches"}
             </span>
           )}
         </div>
@@ -485,10 +485,10 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
 
       {/* ACTIVIDADES */}
       {acts.length > 0 && (
-        <div className="px-4 sm:px-6 border-t border-stone-200">
+        <div className="px-4 sm:px-6 border-t border-border">
           <button
             onClick={() => setShowActivities(!showActivities)}
-            className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-stone-700 hover:text-foreground transition-colors"
+            className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-foreground hover:text-foreground transition-colors"
           >
             <span className="flex items-center gap-2">
               <Sparkles className="w-4 h-4" />
@@ -510,10 +510,10 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
       )}
 
       {/* CONDICIONES */}
-      <div className="px-4 sm:px-6 border-t border-stone-200">
+      <div className="px-4 sm:px-6 border-t border-border">
         <button
           onClick={() => setShowConditions(!showConditions)}
-          className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-stone-700 hover:text-foreground transition-colors"
+          className="w-full flex items-center justify-between py-3 sm:py-3.5 text-[13px] sm:text-sm font-semibold text-foreground hover:text-foreground transition-colors"
         >
           <span className="flex items-center gap-2">
             <Info className="w-4 h-4" />
@@ -525,37 +525,37 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
           <div className="pb-4 space-y-3 animate-[fadeIn_0.2s_ease-out]">
             {plan.Liberados && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold mb-1 flex items-center gap-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1 flex items-center gap-1.5">
                   <Users className="w-3.5 h-3.5" />
                   <Tooltip text={GLOSARIO.liberados} label="Pasajeros liberados" />
                 </p>
-                <p className="text-[13px] text-stone-700 leading-relaxed">{plan.Liberados}</p>
+                <p className="text-[13px] text-foreground leading-relaxed">{plan.Liberados}</p>
               </div>
             )}
             {plan.Seguro && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold mb-1 flex items-center gap-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1 flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5" />
                   <Tooltip text={GLOSARIO.seguro} label="Seguro" />
                 </p>
-                <p className="text-[13px] text-stone-700 leading-relaxed">{plan.Seguro}</p>
+                <p className="text-[13px] text-foreground leading-relaxed">{plan.Seguro}</p>
               </div>
             )}
             {plan.Descuentos && (
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold mb-1 flex items-center gap-1.5">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1 flex items-center gap-1.5">
                   <Tag className="w-3.5 h-3.5" />
                   <Tooltip text={GLOSARIO.descuentos} label="Descuentos disponibles" />
                 </p>
-                <p className="text-[13px] text-stone-700 leading-relaxed">{plan.Descuentos}</p>
+                <p className="text-[13px] text-foreground leading-relaxed">{plan.Descuentos}</p>
               </div>
             )}
             {plan.Vigencia && plan.Vigencia !== "-" && (
-              <div className="pt-2 border-t border-stone-100">
-                <p className="text-[10px] uppercase tracking-wider text-stone-500 font-bold mb-1">
+              <div className="pt-2 border-t border-border">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">
                   <Tooltip text={GLOSARIO.vigencia} label="Vigencia y notas" />
                 </p>
-                <p className="text-[13px] text-stone-600 italic leading-relaxed">{plan.Vigencia}</p>
+                <p className="text-[13px] text-muted-foreground italic leading-relaxed">{plan.Vigencia}</p>
               </div>
             )}
           </div>
@@ -563,7 +563,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
       </div>
 
       {/* CTA — Quiero este viaje (sólo cuando es momento de votar planes) */}
-      <div className="px-4 sm:px-6 pt-3 pb-4 sm:pb-5 border-t border-stone-200 bg-stone-50/60">
+      <div className="px-4 sm:px-6 pt-3 pb-4 sm:pb-5 border-t border-border bg-muted/60">
         {votingEnabled ? (
           <QuickVote
             destino={destino}
@@ -575,7 +575,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
             onVoted={onVoted}
           />
         ) : (
-          <div className="text-[12px] text-stone-500 text-center py-2">
+          <div className="text-[12px] text-muted-foreground text-center py-2">
             La votación de planes se habilita después de la reunión grupal.
           </div>
         )}
@@ -725,15 +725,15 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
                 }}
                 disabled={i > step}
                 className={`flex items-center gap-1.5 text-[12px] sm:text-[13px] font-semibold transition-all px-2 py-1 rounded-lg ${
-                  active ? "text-foreground bg-stone-200"
-                  : done ? "text-stone-700 hover:bg-stone-100 cursor-pointer"
-                  : "text-stone-400"
+                  active ? "text-foreground bg-muted"
+                  : done ? "text-foreground hover:bg-muted cursor-pointer"
+                  : "text-muted-foreground"
                 }`}
               >
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold ${
-                  active ? "bg-stone-900 text-white"
-                  : done ? "bg-accent text-white"
-                  : "bg-stone-200 text-stone-400"
+                  active ? "bg-foreground text-background"
+                  : done ? "bg-accent text-accent-foreground"
+                  : "bg-muted text-muted-foreground"
                 }`}>
                   {done ? <CheckCircle2 className="w-3.5 h-3.5" /> : i + 1}
                 </div>
@@ -742,8 +742,8 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
             );
           })}
         </div>
-        <div className="w-full h-1.5 bg-stone-200 rounded-full overflow-hidden">
-          <div className="h-full bg-stone-900 rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
+        <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+          <div className="h-full bg-foreground rounded-full transition-all duration-500 ease-out" style={{ width: `${progress}%` }} />
         </div>
       </div>
 
@@ -754,7 +754,7 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
         {step === 0 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
             <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">¿Cuántos días de viaje?</h2>
-            <p className="text-stone-500 text-sm mb-5">Elegí la duración del viaje de egresados</p>
+            <p className="text-muted-foreground text-sm mb-5">Elegí la duración del viaje de egresados</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {duracionOptions.map(d => {
                 // Count destinations and companies for this duration
@@ -767,16 +767,16 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
                   <button
                     key={d.key}
                     onClick={() => { setDuracion(d.key); setDestino(null); setStep(1); }}
-                    className="flex items-center gap-3 px-4 py-4 bg-white border-2 border-stone-200 rounded-xl text-left hover:border-stone-400 hover:shadow-md transition-all group"
+                    className="flex items-center gap-3 px-4 py-4 bg-card border-2 border-border rounded-xl text-left hover:border-foreground/30 hover:shadow-md transition-all group"
                   >
-                    <div className="w-12 h-12 rounded-full bg-stone-100 flex items-center justify-center shrink-0">
-                      <CalendarClock className="w-6 h-6 text-stone-600" />
+                    <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
+                      <CalendarClock className="w-6 h-6 text-muted-foreground" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-foreground text-lg">{d.dias} días · {d.noches} {d.noches === 1 ? "noche" : "noches"}</p>
-                      <p className="text-[12px] text-stone-500">{destCount} {destCount === 1 ? "destino" : "destinos"} · {empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
+                      <p className="text-[12px] text-muted-foreground">{destCount} {destCount === 1 ? "destino" : "destinos"} · {empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 shrink-0" />
+                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-muted-foreground shrink-0" />
                   </button>
                 );
               })}
@@ -787,17 +787,17 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
         {/* STEP 1: Destino */}
         {step === 1 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
-            <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
+            <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Cambiar duración
             </button>
             <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">¿A dónde quieren ir?</h2>
-            <p className="text-stone-500 text-sm mb-5">
-              Destinos disponibles para viajes de <span className="font-semibold text-stone-700">{duracion && duracion.replace("|", " días · ")} noches</span>
+            <p className="text-muted-foreground text-sm mb-5">
+              Destinos disponibles para viajes de <span className="font-semibold text-foreground">{duracion && duracion.replace("|", " días · ")} noches</span>
             </p>
             <div className="space-y-6">
               {destinoOptions.map(({ provincia, destinos }) => (
                 <div key={provincia}>
-                  <p className="text-[10.5px] uppercase tracking-[0.2em] text-stone-500 font-bold mb-2.5 flex items-center gap-2">
+                  <p className="text-[10.5px] uppercase tracking-[0.2em] text-muted-foreground font-bold mb-2.5 flex items-center gap-2">
                     <MapPin className="w-3.5 h-3.5" />
                     {provincia}
                   </p>
@@ -813,17 +813,17 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
                         <button
                           key={d}
                           onClick={() => { setDestino(d); setStep(2); }}
-                          className="flex items-center gap-3 px-4 py-3 bg-white border-2 border-stone-200 rounded-xl text-left hover:border-stone-400 hover:shadow-md transition-all group"
+                          className="flex items-center gap-3 px-4 py-3 bg-card border-2 border-border rounded-xl text-left hover:border-foreground/30 hover:shadow-md transition-all group"
                         >
-                          <MapPin className="w-5 h-5 text-stone-400 group-hover:text-stone-700 transition-colors shrink-0" />
+                          <MapPin className="w-5 h-5 text-muted-foreground group-hover:text-foreground transition-colors shrink-0" />
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-foreground text-[15px] truncate">{d}</p>
-                            <p className="text-[12px] text-stone-500">{empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
+                            <p className="text-[12px] text-muted-foreground">{empCount} {empCount === 1 ? "empresa" : "empresas"}</p>
                             {isFinite(minC) && (
                               <p className="text-[12px] text-primary font-semibold">desde {fmt(minC)}/mes</p>
                             )}
                           </div>
-                          <ChevronRight className="w-4 h-4 text-stone-300 group-hover:text-stone-500 shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-muted-foreground shrink-0" />
                         </button>
                       );
                     })}
@@ -837,29 +837,29 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
         {/* STEP 2: Resultados ordenados por precio */}
         {step === 2 && (
           <div className="animate-[fadeIn_0.25s_ease-out]">
-            <button onClick={goBack} className="flex items-center gap-1 text-sm text-stone-500 hover:text-stone-800 mb-3 transition-colors">
+            <button onClick={goBack} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3 transition-colors">
               <ChevronLeft className="w-4 h-4" /> Atrás
             </button>
             <h2 className="font-sans italic text-2xl sm:text-3xl text-foreground tracking-tight mb-1">Opciones de menor a mayor precio</h2>
             <div className="flex flex-wrap items-center gap-2 mb-5">
               {duracion && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-200 text-stone-800 rounded-full text-sm font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-foreground rounded-full text-sm font-semibold">
                   <CalendarClock className="w-3.5 h-3.5" /> {duracion.replace("|", "d · ")}n
                 </span>
               )}
               {destino && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-stone-200 text-stone-800 rounded-full text-sm font-semibold">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-muted text-foreground rounded-full text-sm font-semibold">
                   <MapPin className="w-3.5 h-3.5" /> {destino}
                 </span>
               )}
               <button
                 onClick={reset}
-                className="inline-flex items-center gap-1 px-3 py-1 text-sm text-stone-500 hover:text-stone-800 hover:bg-stone-100 rounded-full transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
               >
                 <Search className="w-3.5 h-3.5" /> Nueva búsqueda
               </button>
             </div>
-            <p className="text-stone-500 text-sm mb-4">{resultCards.length} {resultCards.length === 1 ? "opción encontrada" : "opciones encontradas"}, ordenadas por cuota más baja</p>
+            <p className="text-muted-foreground text-sm mb-4">{resultCards.length} {resultCards.length === 1 ? "opción encontrada" : "opciones encontradas"}, ordenadas por cuota más baja</p>
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-6">
               {resultCards.map(g => (
                 <DestinationCard
@@ -876,8 +876,8 @@ function WizardView({ groupedDestinations, defaultNombre, familiaId = null, onVo
             </div>
             {resultCards.length === 0 && (
               <div className="text-center py-12">
-                <p className="text-stone-500 text-lg">No se encontraron resultados con esos filtros.</p>
-                <button onClick={reset} className="mt-3 text-stone-700 font-semibold underline">Empezar de nuevo</button>
+                <p className="text-muted-foreground text-lg">No se encontraron resultados con esos filtros.</p>
+                <button onClick={reset} className="mt-3 text-foreground font-semibold underline">Empezar de nuevo</button>
               </div>
             )}
           </div>
@@ -965,7 +965,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
     return (
       <button
         onClick={() => setStep(defaultNombre ? 2 : 1)}
-        className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-primary hover:bg-primary/90 active:bg-primary/80 text-white font-bold rounded-2xl transition-all shadow-md hover:shadow-lg text-[15px]"
+        className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 bg-primary hover:bg-primary/90 active:bg-primary/80 text-primary-foreground font-bold rounded-2xl transition-all shadow-md hover:shadow-lg text-[15px]"
       >
         <Vote className="w-5 h-5" />
         ¡Quiero este viaje!
@@ -987,12 +987,12 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
               onKeyDown={(e) => e.key === "Enter" && nombre.trim() && setStep(2)}
               placeholder="Ej: Familia García"
               autoFocus
-              className="flex-1 min-w-0 bg-white border-2 border-primary/40 rounded-xl px-3.5 py-2.5 text-[15px] text-foreground focus:outline-none focus:border-primary transition-colors"
+              className="flex-1 min-w-0 bg-card border-2 border-primary/40 rounded-xl px-3.5 py-2.5 text-[15px] text-foreground focus:outline-none focus:border-primary transition-colors"
             />
             <button
               onClick={() => setStep(2)}
               disabled={!nombre.trim()}
-              className="px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors shrink-0 text-[14px]"
+              className="px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground font-bold rounded-xl transition-colors shrink-0 text-[14px]"
             >
               Siguiente
             </button>
@@ -1005,14 +1005,14 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
         <>
           <p className="text-[13px] text-primary font-semibold">② ¿Qué preferencia es este viaje?</p>
           <div className="space-y-1.5">
-            {[{n:1, label:"1ra opción", desc:"Mi primera elección", color:"bg-accent"}, {n:2, label:"2da opción", desc:"Mi segunda elección", color:"bg-stone-300"}, {n:3, label:"3ra opción", desc:"Mi tercera elección", color:"bg-orange-300"}].map(({n, label, desc, color}) => (
+            {[{n:1, label:"1ra opción", desc:"Mi primera elección", color:"bg-accent"}, {n:2, label:"2da opción", desc:"Mi segunda elección", color:"bg-secondary"}, {n:3, label:"3ra opción", desc:"Mi tercera elección", color:"bg-accent/60"}].map(({n, label, desc, color}) => (
               <button
                 key={n}
                 onClick={() => { setPrioridad(n); setStep(planOptions.length > 0 ? 3 : 4); }}
-                className={`w-full text-left px-3 py-2.5 rounded-lg border text-[13px] transition-colors flex items-center gap-2.5 ${prioridad === n ? "border-primary bg-secondary/30" : "border-stone-200 bg-white hover:bg-secondary/20"}`}
+                className={`w-full text-left px-3 py-2.5 rounded-lg border text-[13px] transition-colors flex items-center gap-2.5 ${prioridad === n ? "border-primary bg-secondary/30" : "border-border bg-card hover:bg-secondary/20"}`}
               >
                 <span className={`w-6 h-6 rounded-full ${color} flex items-center justify-center text-white font-bold text-[12px] shrink-0`}>{n}</span>
-                <span><span className="font-semibold text-stone-800">{label}</span> <span className="text-stone-400">— {desc}</span></span>
+                <span><span className="font-semibold text-foreground">{label}</span> <span className="text-muted-foreground">— {desc}</span></span>
               </button>
             ))}
           </div>
@@ -1027,18 +1027,18 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
           <div className="space-y-1.5 max-h-40 overflow-y-auto">
             <button
               onClick={() => { setSelectedPlan(null); setStep(4); }}
-              className={`w-full text-left px-3 py-2 rounded-lg border text-[13px] transition-colors ${!selectedPlan ? "border-primary bg-secondary/30" : "border-stone-200 bg-white hover:bg-secondary/20"}`}
+              className={`w-full text-left px-3 py-2 rounded-lg border text-[13px] transition-colors ${!selectedPlan ? "border-primary bg-secondary/30" : "border-border bg-card hover:bg-secondary/20"}`}
             >
-              <span className="text-stone-600">Sin preferencia</span>
+              <span className="text-muted-foreground">Sin preferencia</span>
             </button>
             {planOptions.map((p, i) => (
               <button
                 key={i}
                 onClick={() => { setSelectedPlan(p); setStep(4); }}
-                className="w-full text-left px-3 py-2 rounded-lg border border-stone-200 bg-white hover:bg-secondary/20 hover:border-primary/60 text-[13px] transition-colors"
+                className="w-full text-left px-3 py-2 rounded-lg border border-border bg-card hover:bg-secondary/20 hover:border-primary/60 text-[13px] transition-colors"
               >
-                <span className="font-semibold text-stone-800">{p.plan_pago}</span>
-                <span className="text-stone-500 ml-1.5">
+                <span className="font-semibold text-foreground">{p.plan_pago}</span>
+                <span className="text-muted-foreground ml-1.5">
                   Total {fmtPrice(p.total_final)}
                   {p.cuota_mensual ? ` · Cuota ${fmtPrice(p.cuota_mensual)}` : ""}
                 </span>
@@ -1053,13 +1053,13 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
       {step === 4 && (
         <>
           <p className="text-[13px] text-primary font-semibold">{planOptions.length > 0 ? "④" : "③"} Confirmar voto</p>
-          <div className="bg-white rounded-lg px-3 py-2 text-[13px] space-y-0.5">
-            <p className="text-stone-700"><span className="font-semibold">Nombre:</span> {nombre}</p>
-            <p className="text-stone-700"><span className="font-semibold">Preferencia:</span> {prioridad === 1 ? "1ra opción" : prioridad === 2 ? "2da opción" : "3ra opción"}</p>
-            <p className="text-stone-700"><span className="font-semibold">Viaje:</span> {empresa} → {destino}</p>
-            {duracion && <p className="text-stone-700"><span className="font-semibold">Duración:</span> {duracion.replace("|", "d/")}n</p>}
+          <div className="bg-card rounded-lg px-3 py-2 text-[13px] space-y-0.5">
+            <p className="text-foreground"><span className="font-semibold">Nombre:</span> {nombre}</p>
+            <p className="text-foreground"><span className="font-semibold">Preferencia:</span> {prioridad === 1 ? "1ra opción" : prioridad === 2 ? "2da opción" : "3ra opción"}</p>
+            <p className="text-foreground"><span className="font-semibold">Viaje:</span> {empresa} → {destino}</p>
+            {duracion && <p className="text-foreground"><span className="font-semibold">Duración:</span> {duracion.replace("|", "d/")}n</p>}
             {selectedPlan && (
-              <p className="text-stone-700">
+              <p className="text-foreground">
                 <span className="font-semibold">Plan:</span> {selectedPlan.plan_pago} · Total {fmtPrice(selectedPlan.total_final)}
                 {selectedPlan.cuota_mensual ? ` · Cuota ${fmtPrice(selectedPlan.cuota_mensual)}` : ""}
               </p>
@@ -1075,7 +1075,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
             <button
               onClick={handleVote}
               disabled={sending}
-              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-stone-300 text-white font-bold rounded-xl transition-colors text-[15px]"
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-primary hover:bg-primary/90 disabled:bg-muted text-primary-foreground font-bold rounded-xl transition-colors text-[15px]"
             >
               <Send className="w-4 h-4" />
               {sending ? "..." : "Confirmar voto"}
@@ -1084,7 +1084,7 @@ function QuickVote({ destino, empresa, duracion, planes = [], defaultNombre = ""
         </>
       )}
 
-      {error && <p className="text-red-600 text-[13px] font-medium">{error}</p>}
+      {error && <p className="text-destructive text-[13px] font-medium">{error}</p>}
       {step === 1 && (
         <button onClick={() => setStep(0)} className="text-primary/50 hover:text-primary text-[12px]">
           Cancelar
@@ -1107,15 +1107,15 @@ function BarList({ items, color }) {
         return (
           <div key={label}>
             <div className="flex items-baseline justify-between mb-0.5">
-              <span className="text-sm font-semibold text-stone-800 flex items-center gap-1.5">
+              <span className="text-sm font-semibold text-foreground flex items-center gap-1.5">
                 {i === 0 && items.length > 1 && <span className="text-accent">🏆</span>}
                 {label}
               </span>
-              <span className="text-[12px] text-stone-500 font-semibold">{count} · {pct}%</span>
+              <span className="text-[12px] text-muted-foreground font-semibold">{count} · {pct}%</span>
             </div>
-            <div className="w-full h-2.5 bg-stone-100 rounded-full overflow-hidden">
+            <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
               <div
-                className={`h-full rounded-full transition-all duration-700 ease-out ${i === 0 ? color : "bg-stone-300"}`}
+                className={`h-full rounded-full transition-all duration-700 ease-out ${i === 0 ? color : "bg-muted"}`}
                 style={{ width: `${barWidth}%` }}
               />
             </div>
@@ -1255,21 +1255,21 @@ function VotingResults() {
         </div>
         <div>
           <h3 className="font-sans italic text-2xl text-foreground">Resultados</h3>
-          <p className="text-[12px] text-stone-500">{totalVotos} {totalVotos === 1 ? "voto" : "votos"} hasta ahora</p>
+          <p className="text-[12px] text-muted-foreground">{totalVotos} {totalVotos === 1 ? "voto" : "votos"} hasta ahora</p>
         </div>
       </div>
 
       {loadingVotos ? (
-        <p className="text-stone-400 text-sm py-8 text-center">Cargando votos...</p>
+        <p className="text-muted-foreground text-sm py-8 text-center">Cargando votos...</p>
       ) : byDestino.length === 0 ? (
-        <div className="text-center py-12 bg-white border border-stone-200 rounded-2xl">
-          <Vote className="w-10 h-10 text-stone-300 mx-auto mb-2" />
-          <p className="text-stone-400 text-sm">Todavía no hay votos. ¡Sé el primero!</p>
+        <div className="text-center py-12 bg-card border border-border rounded-2xl">
+          <Vote className="w-10 h-10 text-muted-foreground mx-auto mb-2" />
+          <p className="text-muted-foreground text-sm">Todavía no hay votos. ¡Sé el primero!</p>
         </div>
       ) : (
         <>
           {/* POR DESTINO */}
-          <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <MapPin className="w-4 h-4 text-accent" />
               <h4 className="font-semibold text-foreground text-[15px]">Por destino</h4>
@@ -1279,19 +1279,19 @@ function VotingResults() {
 
           {/* RANKING PONDERADO POR PREFERENCIA */}
           {byDestinoPonderado.length > 0 && (
-            <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Star className="w-4 h-4 text-accent" />
                 <h4 className="font-semibold text-foreground text-[15px]">Ranking por preferencia</h4>
               </div>
-              <p className="text-[11px] text-stone-400 mb-3">1ra opción = 3 pts, 2da = 2 pts, 3ra = 1 pt</p>
+              <p className="text-[11px] text-muted-foreground mb-3">1ra opción = 3 pts, 2da = 2 pts, 3ra = 1 pt</p>
               <BarList items={byDestinoPonderado} color="bg-accent" />
             </div>
           )}
 
           {/* POR PRIORIDAD */}
           {byPrioridad.length > 0 && (
-            <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Star className="w-4 h-4 text-primary/70" />
                 <h4 className="font-semibold text-foreground text-[15px]">Votos por orden de preferencia</h4>
@@ -1301,16 +1301,16 @@ function VotingResults() {
           )}
 
           {/* POR EMPRESA + DESTINO */}
-          <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
-              <Building2 className="w-4 h-4 text-blue-600" />
+              <Building2 className="w-4 h-4 text-info" />
               <h4 className="font-semibold text-foreground text-[15px]">Por empresa y destino</h4>
             </div>
-            <BarList items={byEmpresaDestino} color="bg-blue-500" />
+            <BarList items={byEmpresaDestino} color="bg-info" />
           </div>
 
           {/* POR EMPRESA + DESTINO + DÍAS */}
-          <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+          <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <CalendarClock className="w-4 h-4 text-primary" />
               <h4 className="font-semibold text-foreground text-[15px]">Por empresa, destino y días</h4>
@@ -1320,7 +1320,7 @@ function VotingResults() {
 
           {/* POR FORMA DE PAGO */}
           {byPlanPago.length > 0 && (
-            <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <CreditCard className="w-4 h-4 text-accent" />
                 <h4 className="font-semibold text-foreground text-[15px]">Por forma de pago</h4>
@@ -1331,23 +1331,23 @@ function VotingResults() {
 
           {/* POR COSTO TOTAL */}
           {byCostoTotal.length > 0 && (
-            <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <DollarSign className="w-4 h-4 text-teal-600" />
+                <DollarSign className="w-4 h-4 text-primary" />
                 <h4 className="font-semibold text-foreground text-[15px]">Por costo total elegido</h4>
               </div>
-              <BarList items={byCostoTotal} color="bg-teal-500" />
+              <BarList items={byCostoTotal} color="bg-primary" />
             </div>
           )}
 
           {/* POR CUOTA MENSUAL */}
           {byCuota.length > 0 && (
-            <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
-                <DollarSign className="w-4 h-4 text-rose-600" />
+                <DollarSign className="w-4 h-4 text-destructive" />
                 <h4 className="font-semibold text-foreground text-[15px]">Por cuota mensual elegida</h4>
               </div>
-              <BarList items={byCuota} color="bg-rose-500" />
+              <BarList items={byCuota} color="bg-destructive" />
             </div>
           )}
         </>
@@ -1355,17 +1355,17 @@ function VotingResults() {
 
       {/* Últimos votos */}
       {votos.length > 0 && (
-        <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 shadow-sm">
-          <p className="text-[10.5px] uppercase tracking-[0.2em] text-stone-400 font-bold mb-3">Últimos votos</p>
+        <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 shadow-sm">
+          <p className="text-[10.5px] uppercase tracking-[0.2em] text-muted-foreground font-bold mb-3">Últimos votos</p>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {votos.slice(0, 15).map(v => (
               <div key={v.id} className="flex items-center gap-x-2 text-[13px]">
                 {v.prioridad && (
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px] shrink-0 ${v.prioridad === 1 ? "bg-accent" : v.prioridad === 2 ? "bg-stone-400" : "bg-orange-400"}`}>{v.prioridad}</span>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-white font-bold text-[10px] shrink-0 ${v.prioridad === 1 ? "bg-accent" : v.prioridad === 2 ? "bg-secondary" : "bg-destructive/70"}`}>{v.prioridad}</span>
                 )}
-                <span className="font-semibold text-stone-700">{v.nombre}</span>
-                <span className="text-stone-400">→</span>
-                <span className="text-stone-600">{v.destino}</span>
+                <span className="font-semibold text-foreground">{v.nombre}</span>
+                <span className="text-muted-foreground">→</span>
+                <span className="text-muted-foreground">{v.destino}</span>
               </div>
             ))}
           </div>
@@ -1551,20 +1551,20 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans">
-      <div className="h-1.5 bg-gradient-to-r from-orange-500 via-red-500 via-green-500 via-cyan-500 via-blue-500 to-fuchsia-500" />
+    <div className="min-h-screen bg-background font-sans">
+      <div className="h-1.5 bg-gradient-to-r from-primary via-accent to-secondary" />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-5 sm:py-8 lg:py-12">
 
         {/* HEADER */}
         <div className="mb-5 sm:mb-8">
           <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 sm:mb-2">
-            <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.22em] sm:tracking-[0.25em] text-stone-500 font-bold">Comparativa 2026</p>
+            <p className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.22em] sm:tracking-[0.25em] text-muted-foreground font-bold">Comparativa 2026</p>
             {familia && (
               <div className="flex items-center gap-2">
-                <span className="text-[12px] text-stone-500">
-                  <span className="font-semibold text-stone-700">{familia}</span>
-                  {totalVotos != null && <span className="ml-2 text-stone-400">· {totalVotos} {totalVotos === 1 ? "voto" : "votos"} totales</span>}
+                <span className="text-[12px] text-muted-foreground">
+                  <span className="font-semibold text-foreground">{familia}</span>
+                  {totalVotos != null && <span className="ml-2 text-muted-foreground">· {totalVotos} {totalVotos === 1 ? "voto" : "votos"} totales</span>}
                 </span>
                 <button
                   onClick={async () => {
@@ -1572,7 +1572,7 @@ export default function App() {
                     if (supabase) await supabase.auth.signOut();
                     setIdentity({ nombre: "", familiaId: null, grupoId: null });
                   }}
-                  className="text-[11px] text-stone-400 hover:text-stone-600 underline"
+                  className="text-[11px] text-muted-foreground hover:text-muted-foreground underline"
                 >
                   Cambiar
                 </button>
@@ -1580,16 +1580,16 @@ export default function App() {
             )}
           </div>
           <h1 className="font-sans italic text-3xl sm:text-4xl lg:text-5xl text-foreground tracking-tight leading-none mb-2.5 sm:mb-4">
-            Viajes de <em className="text-stone-700">egresados</em>
+            Viajes de <em className="text-foreground">egresados</em>
           </h1>
-          <p className="text-stone-600 max-w-2xl text-[14px] sm:text-base leading-relaxed">
+          <p className="text-muted-foreground max-w-2xl text-[14px] sm:text-base leading-relaxed">
             Compará cuotas mensuales, formas de pago y duración. Tocá cualquier ícono <Info className="inline w-3.5 h-3.5 align-text-bottom" /> para ver una explicación en términos simples.
           </p>
 
           {/* ESTADO DE VOTACIÓN — explícito qué prioridades ya votó la familia */}
           {familia && (
             <div className="mt-4 sm:mt-5">
-              <p className="text-[10.5px] uppercase tracking-[0.2em] text-stone-500 font-bold mb-2">Tu votación</p>
+              <p className="text-[10.5px] uppercase tracking-[0.2em] text-muted-foreground font-bold mb-2">Tu votación</p>
               <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-2xl">
                 {[1, 2, 3].map(n => {
                   const v = votosPorPrioridad[n];
@@ -1602,17 +1602,17 @@ export default function App() {
                         <div className="min-w-0 flex-1">
                           <p className="text-[10.5px] uppercase tracking-wider text-primary font-bold leading-tight">{label} <CheckCircle2 className="inline w-3 h-3 ml-0.5" strokeWidth={2.5} /></p>
                           <p className="text-[12px] text-foreground font-semibold truncate leading-tight mt-0.5">{v.destino}</p>
-                          <p className="text-[10.5px] text-stone-500 truncate leading-tight">{v.empresa}</p>
+                          <p className="text-[10.5px] text-muted-foreground truncate leading-tight">{v.empresa}</p>
                         </div>
                       </div>
                     );
                   }
                   return (
-                    <div key={n} className="flex items-center gap-2 px-2.5 py-2 bg-white border-2 border-dashed border-stone-300 rounded-lg">
-                      <span className="w-5 h-5 rounded-full bg-stone-200 flex items-center justify-center text-stone-500 font-bold text-[11px] shrink-0">{n}</span>
+                    <div key={n} className="flex items-center gap-2 px-2.5 py-2 bg-card border-2 border-dashed border-border rounded-lg">
+                      <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-muted-foreground font-bold text-[11px] shrink-0">{n}</span>
                       <div className="min-w-0">
-                        <p className="text-[10.5px] uppercase tracking-wider text-stone-500 font-bold leading-tight">{label}</p>
-                        <p className="text-[11px] text-stone-400 leading-tight mt-0.5">Falta votar</p>
+                        <p className="text-[10.5px] uppercase tracking-wider text-muted-foreground font-bold leading-tight">{label}</p>
+                        <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">Falta votar</p>
                       </div>
                     </div>
                   );
@@ -1689,35 +1689,35 @@ export default function App() {
         >
           {etapaId === "coordinar" && !comparativaOpen && (
             <CollapsibleTrigger asChild>
-              <button className="w-full flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-4 py-3 mb-6 hover:bg-stone-50 transition">
+              <button className="w-full flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-3 mb-6 hover:bg-muted transition">
                 <div className="flex items-center gap-2.5 text-left">
-                  <Search className="w-4 h-4 text-stone-600 shrink-0" />
+                  <Search className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div>
                     <p className="text-sm font-semibold text-foreground">¿Querés ir mirando las propuestas?</p>
                     <p className="text-[12px] text-muted-foreground">Las podés explorar mientras se coordina la reunión. La votación viene después.</p>
                   </div>
                 </div>
-                <ChevronDown className="w-4 h-4 text-stone-500" />
+                <ChevronDown className="w-4 h-4 text-muted-foreground" />
               </button>
             </CollapsibleTrigger>
           )}
           {etapaId === "coordinar" && comparativaOpen && (
             <CollapsibleTrigger asChild>
-              <button className="w-full flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white px-4 py-2 mb-4 hover:bg-stone-50 transition">
-                <p className="text-[12px] font-semibold text-stone-600">Ocultar propuestas</p>
-                <ChevronUp className="w-4 h-4 text-stone-500" />
+              <button className="w-full flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-4 py-2 mb-4 hover:bg-muted transition">
+                <p className="text-[12px] font-semibold text-muted-foreground">Ocultar propuestas</p>
+                <ChevronUp className="w-4 h-4 text-muted-foreground" />
               </button>
             </CollapsibleTrigger>
           )}
           <CollapsibleContent>
         <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-1 p-1 bg-white border border-stone-200 rounded-xl">
+          <div className="flex items-center gap-1 p-1 bg-card border border-border rounded-xl">
             <button
               onClick={() => setTab("precio")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                 tab === "precio"
-                  ? "bg-stone-900 text-white shadow-sm"
-                  : "text-stone-600 hover:text-foreground hover:bg-stone-50"
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               <Wallet className="w-4 h-4" />
@@ -1727,8 +1727,8 @@ export default function App() {
               onClick={() => setTab("provincia")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                 tab === "provincia"
-                  ? "bg-stone-900 text-white shadow-sm"
-                  : "text-stone-600 hover:text-foreground hover:bg-stone-50"
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               <MapPin className="w-4 h-4" />
@@ -1738,8 +1738,8 @@ export default function App() {
               onClick={() => setTab("empresa")}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all ${
                 tab === "empresa"
-                  ? "bg-stone-900 text-white shadow-sm"
-                  : "text-stone-600 hover:text-foreground hover:bg-stone-50"
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
               }`}
             >
               <Building2 className="w-4 h-4" />
@@ -1785,10 +1785,10 @@ export default function App() {
         {/* GRID — siempre visible, según tab */}
         {tab === "precio" && (
           <div>
-            <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-stone-300">
-              <Wallet className="w-5 h-5 text-stone-700 shrink-0 self-center" strokeWidth={1.8} />
+            <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-border">
+              <Wallet className="w-5 h-5 text-foreground shrink-0 self-center" strokeWidth={1.8} />
               <h2 className="font-sans italic text-3xl text-foreground tracking-tight">De menor a mayor cuota mensual</h2>
-              <span className="text-[11px] uppercase tracking-[0.2em] text-stone-500 font-bold ml-auto">
+              <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-bold ml-auto">
                 {sortedByPrice.length} tarjetas
               </span>
             </div>
@@ -1813,10 +1813,10 @@ export default function App() {
           <div className="space-y-12">
             {groupedByProvincia.map(({ provincia, items }) => (
               <section key={provincia}>
-                <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-stone-300">
-                  <MapPin className="w-5 h-5 text-stone-700 shrink-0 self-center" strokeWidth={1.8} />
+                <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-border">
+                  <MapPin className="w-5 h-5 text-foreground shrink-0 self-center" strokeWidth={1.8} />
                   <h2 className="font-sans italic text-3xl text-foreground tracking-tight">{provincia}</h2>
-                  <span className="text-[11px] uppercase tracking-[0.2em] text-stone-500 font-bold ml-auto">
+                  <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-bold ml-auto">
                     {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                   </span>
                 </div>
@@ -1845,10 +1845,10 @@ export default function App() {
               const accent = COMPANY_ACCENT[empresa] || COMPANY_ACCENT["Flecha"];
               return (
                 <section key={empresa}>
-                  <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-stone-300">
+                  <div className="flex items-baseline gap-3 mb-5 pb-3 border-b border-border">
                     <span className={`w-3 h-3 rounded-full ${accent.dot} self-center shrink-0`} />
                     <h2 className={`font-sans italic text-3xl tracking-tight ${accent.text}`}>{empresa}</h2>
-                    <span className="text-[11px] uppercase tracking-[0.2em] text-stone-500 font-bold ml-auto">
+                    <span className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-bold ml-auto">
                       {items.length} {items.length === 1 ? "tarjeta" : "tarjetas"}
                     </span>
                   </div>
@@ -1874,20 +1874,20 @@ export default function App() {
         </Collapsible>
 
         {/* RESUMEN INFORMATIVO — sin protagonismo, al pie */}
-        <div className="mt-16 pt-6 border-t border-stone-200">
-          <p className="text-[10px] uppercase tracking-[0.2em] text-stone-400 font-bold mb-3 text-center sm:text-left">
+        <div className="mt-16 pt-6 border-t border-border">
+          <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground font-bold mb-3 text-center sm:text-left">
             Datos del comparativo
           </p>
-          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 text-stone-500 justify-center sm:justify-start">
-            <p className="text-[13px]"><span className="font-semibold text-stone-700">{stats.provincias}</span> provincias</p>
-            <p className="text-[13px]"><span className="font-semibold text-stone-700">{stats.empresas}</span> empresas</p>
-            <p className="text-[13px]"><span className="font-semibold text-stone-700">{stats.destinos}</span> destinos</p>
-            <p className="text-[13px]"><span className="font-semibold text-stone-700">{stats.planes}</span> planes de pago</p>
+          <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 text-muted-foreground justify-center sm:justify-start">
+            <p className="text-[13px]"><span className="font-semibold text-foreground">{stats.provincias}</span> provincias</p>
+            <p className="text-[13px]"><span className="font-semibold text-foreground">{stats.empresas}</span> empresas</p>
+            <p className="text-[13px]"><span className="font-semibold text-foreground">{stats.destinos}</span> destinos</p>
+            <p className="text-[13px]"><span className="font-semibold text-foreground">{stats.planes}</span> planes de pago</p>
           </div>
         </div>
 
-        <footer className="mt-8 pt-6 border-t border-stone-100 text-center">
-          <p className="text-[11px] uppercase tracking-[0.2em] text-stone-400 font-semibold">
+        <footer className="mt-8 pt-6 border-t border-border text-center">
+          <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">
             Datos de comparativa · Buenos Aires · 2026
           </p>
         </footer>

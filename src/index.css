@@ -32,6 +32,12 @@
     --destructive: 11 76% 62%;                  /* tierra #E76F51 */
     --destructive-foreground: 0 0% 100%;
 
+    --info: 199 89% 48%;                        /* sky-500 — info banners */
+    --info-foreground: 0 0% 100%;
+
+    --whatsapp: 142 70% 45%;                   /* WhatsApp brand green #25D366 */
+    --whatsapp-foreground: 0 0% 100%;
+
     --border: 60 5% 90%;
     --input: 60 5% 90%;
     --ring: 110 41% 25%;
@@ -51,6 +57,10 @@
     --ring: 210 60% 35%;
     --foreground: 210 40% 18%;
     --muted-foreground: 210 20% 40%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --whatsapp: 142 70% 45%;
+    --whatsapp-foreground: 0 0% 100%;
   }
 
   /* ===========================================================
@@ -66,6 +76,10 @@
     --ring: 18 75% 45%;
     --foreground: 20 30% 18%;
     --muted-foreground: 20 15% 40%;
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+    --whatsapp: 142 70% 45%;
+    --whatsapp-foreground: 0 0% 100%;
   }
 
   * {
