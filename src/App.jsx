@@ -555,7 +555,7 @@ function DestinationCard({ empresa, destino, planes, defaultNombre = "", familia
                 <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-1">
                   <Tooltip text={GLOSARIO.vigencia} label="Vigencia y notas" />
                 </p>
-                <p className="text-[13px] text-muted-foreground italic leading-relaxed">{plan.Vigencia}</p>
+                <p className="text-[13px] text-muted-foreground leading-relaxed">{plan.Vigencia}</p>
               </div>
             )}
           </div>
